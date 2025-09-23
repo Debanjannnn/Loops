@@ -5,6 +5,7 @@ import { useEffect, useState } from "react"
 import { useWallet } from "@/contexts/WalletContext"
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select"
 import AppSidebar from "@/components/dashboard/ui/SidebarTabs"
+import { ShimmerButton } from "@/components/magicui/shimmer-button"
 
 interface DashboardHeaderProps {
   title?: string
@@ -51,28 +52,8 @@ export default function DashboardHeader({ title = "Koon" }: DashboardHeaderProps
         aria-label="Main header"
       >
         <div className="relative mx-auto flex h-14 items-center justify-end px-2 md:px-3">
-          {/* Center: Glass balance box */}
-          {isConnected ? (
-            <div className="absolute left-1/2 -translate-x-1/2 hidden sm:flex items-center gap-2 rounded-2xl border px-4 py-2 border-white/15 bg-white/10 backdrop-blur-md shadow-[0_1px_1px_rgba(0,0,0,0.05),inset_0_1px_0_rgba(255,255,255,0.1)]">
-              <div className="h-5 w-5 rounded-full bg-white/20" aria-hidden="true" />
-              <span className="font-semibold text-white">{nearBalance}</span>
-              <span className="text-white/70 text-sm">NEAR</span>
-            </div>
-          ) : null}
-
-          {/* Right: Wallet balance, Avatar, Wallet connect */}
+          {/* Right: Chain selector, Wallet connect */}
           <div className="flex items-center gap-2 md:gap-3">
-            {isConnected ? (
-              <div
-                className="flex sm:hidden items-center gap-2 rounded-full border px-3 py-1.5 text-sm leading-none border-white/10 bg-white/5"
-                aria-label="Wallet balance"
-              >
-                <div className="h-5 w-5 rounded-full bg-white/20" aria-hidden="true" />
-                <span className="font-semibold text-white">{nearBalance}</span>
-                <span className="text-white/60">NEAR</span>
-              </div>
-            ) : null}
-
             <div className="flex items-center gap-2">
               <Select value={chain} onValueChange={setChain}>
                 <SelectTrigger size="sm" className="rounded-full border-white/10 bg-white/5 text-white">
