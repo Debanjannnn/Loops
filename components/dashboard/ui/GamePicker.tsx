@@ -38,7 +38,7 @@ export default function GamePicker({ onPick }: GamePickerProps) {
     <div className="w-full h-full">
       <div className="mb-10">
         <div className="flex items-center space-x-3 mb-4">
-          <div className="w-10 h-10 bg-gradient-to-r from-[#df500f] to-[#ff6b35] rounded-xl flex items-center justify-center">
+          <div className="w-10 h-10 bg-red-600 rounded-xl flex items-center justify-center">
             <Play className="w-5 h-5 text-white" />
           </div>
           <h2 className="text-white text-4xl font-bold">Choose Your Game</h2>
@@ -72,7 +72,7 @@ export default function GamePicker({ onPick }: GamePickerProps) {
 
                   {/* Play Button Overlay */}
                   <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-black/60 backdrop-blur-sm">
-                    <div className="w-20 h-20 bg-gradient-to-r from-[#df500f] to-[#ff6b35] rounded-full flex items-center justify-center border-2 border-white/30 shadow-2xl">
+                    <div className="w-20 h-20 bg-red-600 rounded-full flex items-center justify-center border-2 border-white/30 shadow-2xl">
                       <Play className="w-10 h-10 text-white ml-1" />
                     </div>
                   </div>

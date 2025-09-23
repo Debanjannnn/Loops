@@ -351,14 +351,14 @@ export default function CrashGame({ compact = false }: CrashGameProps) {
 
   return (
     <div className="flex h-full text-white relative overflow-hidden min-h-0">
-      <div className={`relative z-10 ${compact ? "w-64" : "w-80"} bg-black border-0 ${compact ? "p-4" : "p-6"} h-full overflow-hidden`}>
+      <div className={`relative z-10 ${compact ? "w-64" : "w-80"} bg-black/40 backdrop-blur-md border-0 ${compact ? "p-4" : "p-6"} h-full overflow-hidden`}>
         <div className="space-y-5">
-          <div className="flex bg-gray-900 rounded-xl p-1 border border-gray-700">
+          <div className="flex bg-gray-900 rounded-4xl p-1 border border-gray-700">
             <button
               onClick={() => setGameMode("manual")}
-              className={`flex-1 py-2.5 px-3 rounded-lg text-sm font-medium transition-all duration-200 ${
+              className={`flex-1 py-2.5 px-3 rounded-4xl text-sm font-medium transition-all duration-200 ${
                 gameMode === "manual"
-                  ? "bg-[#df500f]/80 text-white shadow-lg"
+                  ? "bg-red-600/80 text-white shadow-lg"
                   : "text-gray-300 hover:text-white hover:bg-gray-700"
               }`}
             >
@@ -367,9 +367,9 @@ export default function CrashGame({ compact = false }: CrashGameProps) {
             </button>
             <button
               onClick={() => setGameMode("auto")}
-              className={`flex-1 py-2.5 px-3 rounded-lg text-sm font-medium transition-all duration-200 ${
+              className={`flex-1 py-2.5 px-3 rounded-4xl text-sm font-medium transition-all duration-200 ${
                 gameMode === "auto"
-                  ? "bg-[#df500f]/80 text-white shadow-lg"
+                  ? "bg-red-600/80 text-white shadow-lg"
                   : "text-gray-300 hover:text-white hover:bg-gray-700"
               }`}
             >
@@ -385,7 +385,7 @@ export default function CrashGame({ compact = false }: CrashGameProps) {
                 <Input
                   value={betAmount}
                   onChange={(e) => setBetAmount(e.target.value)}
-                  className="bg-gray-800 border-gray-600 text-white pr-20 focus:border-[#df500f]/50 focus:ring-[#df500f]/20 h-10 rounded-xl"
+                  className="bg-gray-800 border-gray-600 text-white pr-20 focus:border-red-600/50 focus:ring-red-600/20 h-10 rounded-4xl"
                   placeholder="0.00"
                   disabled={isPlaying}
                 />
@@ -415,7 +415,7 @@ export default function CrashGame({ compact = false }: CrashGameProps) {
             <Input
               value={autoCashout}
               onChange={(e) => setAutoCashout(e.target.value)}
-              className="bg-gray-800 border-gray-600 text-white h-10 rounded-xl focus:border-[#df500f]/50"
+              className="bg-gray-800 border-gray-600 text-white h-10 rounded-4xl focus:border-red-600/50"
               placeholder="2.00"
             />
           </div>
@@ -437,7 +437,7 @@ export default function CrashGame({ compact = false }: CrashGameProps) {
           <Button
             onClick={handleBet}
             disabled={!gameRound.isRunning && !isPlaying}
-            className="w-full bg-gradient-to-r from-[#df500f] to-[#ff6b35] hover:from-[#c4460d] hover:to-[#df500f] text-white font-semibold py-3 h-12 rounded-xl border-0 shadow-lg transition-all duration-200 transform hover:scale-[1.02]"
+            className="w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-3 h-12 rounded-4xl border-0 shadow-lg transition-all duration-200 transform hover:scale-[1.02]"
           >
             {isPlaying ? "💰 Cash Out" : "🚀 Place Bet"}
           </Button>
@@ -448,9 +448,9 @@ export default function CrashGame({ compact = false }: CrashGameProps) {
               <Input
                 value={totalProfit}
                 readOnly
-                className="bg-gray-800 border-gray-600 text-white flex-1 h-10 rounded-xl"
+                className="bg-gray-800 border-gray-600 text-white flex-1 h-10 rounded-4xl"
               />
-              <div className="w-9 h-9 bg-gradient-to-r from-[#df500f] to-[#ff6b35] rounded-full flex items-center justify-center shadow-lg">
+              <div className="w-9 h-9 bg-red-600 rounded-full flex items-center justify-center shadow-lg">
                 <span className="text-white text-xs font-bold">₹</span>
               </div>
             </div>
@@ -463,7 +463,7 @@ export default function CrashGame({ compact = false }: CrashGameProps) {
         <div className={`flex-1 relative ${compact ? "p-2" : "p-3"} min-h-0`}>
           <canvas
             ref={canvasRef}
-            className="w-full h-full rounded-xl bg-black border-0"
+            className="w-full h-full rounded-xl bg-black/30 backdrop-blur-sm border border-white/10"
             style={{ minHeight: compact ? "280px" : "360px" }}
           />
 

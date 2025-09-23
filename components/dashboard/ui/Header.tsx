@@ -47,7 +47,7 @@ export default function DashboardHeader({ title = "Koon" }: DashboardHeaderProps
       {/* make header transparent, fully rounded, and offset from left to clear the sidebar.
           Small inset top/right so the curve is visible. */}
       <header
-        className="fixed top-0 right-0 left-[16rem] z-50 rounded-full border border-border bg-background/70 backdrop-blur"
+        className="fixed top-0 right-80 left-[16rem] z-50 rounded-full border border-border bg-background/70 backdrop-blur"
         aria-label="Main header"
       >
         <div className="relative mx-auto flex h-14 items-center justify-end px-2 md:px-3">

@@ -14,9 +14,10 @@ import Image from "next/image"
 import NeonGradientCard from "@/components/magicui/neon-gradient-card"
 import GameSlotCard from "@/components/dashboard/ui/GameSlotCard"
 import FeaturePills from "@/components/dashboard/ui/FeaturePills"
+import ChatSidebar from "@/components/dashboard/ui/ChatSidebar"
 
 export default function DashboardPage() {
-  const { selectedSection, setSelectedSection } = useUI()
+  const { selectedSection, setSelectedSection, mode } = useUI()
   const [activeGame, setActiveGame] = useState<"rugs" | "mines" | null>(null)
   const [balance, setBalance] = useState<number>(1234.56)
   const [activeCategory, setActiveCategory] = useState<string>("All")
@@ -41,7 +42,7 @@ export default function DashboardPage() {
                   <p className="text-white/70 mt-1 text-sm md:text-base">Play provably fair games and track your winnings.</p>
                 </div>
                 <div className="hidden sm:flex gap-3">
-                  <Button className="bg-[#df500f] hover:bg-[#df500f]/90 text-white" onClick={() => setActiveGame("mines")}>Play Mines</Button>
+                  <Button className="bg-red-600 hover:bg-red-700 text-white" onClick={() => setActiveGame("mines")}>Play Mines</Button>
                   <Button variant="outline" className="border-white/20 text-white hover:bg-white/10" onClick={() => setActiveGame("rugs")}>Play Cashout</Button>
                 </div>
               </div>
@@ -149,7 +150,7 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          <div className="mt-8 p-4 bg-gradient-to-r from-[#df500f]/20 to-[#ff6b35]/20 rounded-xl border border-[#df500f]/30">
+                      <div className="mt-8 p-4 bg-red-600/20 rounded-xl border border-red-600/30">
             <p className="text-white/80 text-sm">
               Be the first to know when we launch! Join our waitlist for early access.
             </p>
@@ -165,15 +166,42 @@ export default function DashboardPage() {
     return null
   }
 
+  const NearMarketPanel = () => {
+    return (
+      <div className="w-96 shrink-0 h-full border-l border-border bg-background/70 backdrop-blur rounded-l-3xl overflow-y-auto">
+        <div className="p-4">
+          <h3 className="text-lg font-semibold mb-2">NearMarket</h3>
+          <p className="text-sm text-foreground/70 mb-4">Browse and trade prediction markets.</p>
+
+          <div className="space-y-3">
+            {Array.from({ length: 30 }).map((_, idx) => (
+              <div key={idx} className="rounded-xl border border-border p-3 bg-secondary/40">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="font-medium">Market #{idx + 1}</div>
+                    <div className="text-xs text-foreground/60">Ends in {(idx + 1) * 3}h</div>
+                  </div>
+                  <Button size="sm" className="h-8">View</Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div
-      className="min-h-screen w-full relative overflow-hidden"
+      className="min-h-screen w-full relative overflow-hidden pr-80"
       style={{
         background: "linear-gradient(135deg, #0f0f23 0%, #1a1a2e 25%, #16213e 50%, #0f3460 75%, #533483 100%)",
       }}
     >
       {/* Dark overlay for better contrast */}
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm"></div>
+
+      <ChatSidebar />
 
       <div className="relative z-10 w-full mx-auto pt-14">
         <DashboardHeader title="Koon" balanceInINR={balance} />
@@ -183,9 +211,9 @@ export default function DashboardPage() {
             <SidebarTabs />
           </div>
 
-          <div className="flex-1 flex flex-col m-0 p-0">
+          <div className="flex-1 flex flex-col m-0 p-0 px-3 sm:px-4 md:px-6 lg:px-8 bg-gray-800">
             {/* Breadcrumb and Back Button */}
-            {selectedSection === "games" && activeGame && (
+            {mode === "casino" && selectedSection === "games" && activeGame && (
               <div className="mb-0 flex items-center justify-between">
                 <Button
                   variant="outline"
@@ -207,12 +235,18 @@ export default function DashboardPage() {
               </div>
             )}
 
-            {selectedSection === "home" ? (
-              <div className="flex flex-col gap-4">{renderCenter()}</div>
+            {mode === "casino" ? (
+              selectedSection === "home" ? (
+                <div className="flex flex-col gap-4">{renderCenter()}</div>
+              ) : (
+                <GameContainer scrollable={false}>{renderCenter()}</GameContainer>
+              )
             ) : (
-              <GameContainer scrollable={false}>{renderCenter()}</GameContainer>
+              <div className="h-full" />
             )}
           </div>
+
+          {mode === "nearmarket" ? <NearMarketPanel /> : null}
         </div>
       </div>
     </div>

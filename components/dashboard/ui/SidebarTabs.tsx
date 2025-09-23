@@ -42,14 +42,13 @@ const primaryNav: NavItem[] = [
 ]
 
 const secondaryNav: NavItem[] = [
-  { label: "Documents", href: "/docs", icon: FileText, key: "docs" },
   { label: "Support", href: "/support", icon: HelpCircle, key: "support" },
   { label: "Affiliates", href: "/affiliates", icon: UsersRound, key: "affiliates" },
 ]
 
 export default function AppSidebar() {
   const pathname = usePathname()
-  const { selectedSection, setSelectedSection } = useUI()
+  const { selectedSection, setSelectedSection, mode, setMode } = useUI()
 
   return (
     <aside
@@ -62,25 +61,36 @@ export default function AppSidebar() {
       aria-label="App sidebar navigation"
     >
       {/* Brand */}
-      <div className="flex items-center gap-4 px-4 pt-5 pb-4">
-        <Image src="/cat.png" alt="Koon logo" width={40} height={40} className="rounded-full border border-border object-cover" />
+      <div className="flex items-center gap-6 px-4 pt-7 pb-6">
+        <Image src="/mainlogo.png" alt="Koon logo" width={64} height={64} className="rounded-full border border-border object-cover" />
         <div className="leading-tight">
-          <div className="text-base font-semibold text-foreground text-pretty">Koon</div>
-          <div className="text-[11px] tracking-[0.18em] text-foreground/60">@koondotfun</div>
+          <div className="text-3xl md:text-4xl font-extrabold text-foreground text-pretty">Koon</div>
+          <div className="text-[13px] tracking-[0.18em] text-foreground/60">@koondotfun</div>
         </div>
       </div>
 
       {/* Segmented control (Casino / NearMarket) */}
       <div className="px-3">
         <div className="grid grid-cols-2 gap-2 rounded-2xl border border-border p-1">
-          <button className={cn("h-8 rounded-xl text-xs font-medium", "bg-primary text-primary-foreground")}>
+          <button
+            onClick={() => {
+              setMode("casino")
+              setSelectedSection("home")
+            }}
+            className={cn(
+              "h-8 rounded-xl text-xs font-medium",
+              mode === "casino" ? "bg-primary text-primary-foreground" : "text-foreground/70 hover:text-foreground hover:bg-muted transition",
+            )}
+          >
             Casino
           </button>
           <button
+            onClick={() => {
+              setMode("nearmarket")
+            }}
             className={cn(
               "h-8 rounded-xl text-xs font-medium",
-              "text-foreground/70 hover:text-foreground",
-              "hover:bg-muted transition",
+              mode === "nearmarket" ? "bg-primary text-primary-foreground" : "text-foreground/70 hover:text-foreground hover:bg-muted transition",
             )}
           >
             NearMarket
@@ -99,7 +109,7 @@ export default function AppSidebar() {
                 <button
                   onClick={() => setSelectedSection(item.key || item.href.replace("/", ""))}
                   className={cn(
-                    "group flex w-full items-center justify-between rounded-2xl px-3 py-2 text-sm text-left",
+                    "group flex w-full items-center justify-between rounded-2xl px-3 py-2 text-base text-left",
                     active
                       ? "bg-primary text-primary-foreground"
                       : "text-foreground/80 hover:text-foreground hover:bg-muted",
@@ -141,7 +151,7 @@ export default function AppSidebar() {
                 <li key={item.key || item.href}>
                   <button
                     onClick={() => setSelectedSection(item.key || item.href.replace("/", ""))}
-                    className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm text-foreground/80 hover:bg-muted hover:text-foreground text-left"
+                    className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-base text-foreground/80 hover:bg-muted hover:text-foreground text-left"
                   >
                     <Icon className="h-4 w-4 opacity-80" />
                     {item.label}

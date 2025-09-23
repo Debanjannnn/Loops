@@ -171,12 +171,12 @@ export default function MinesGame({ compact = false }: MinesGameProps) {
       >
         <div className="space-y-4">
           {/* Game Mode Toggle */}
-          <div className="flex bg-black/30 backdrop-blur-sm rounded-xl p-1 border border-white/10">
+          <div className="flex bg-black/30 backdrop-blur-sm rounded-4xl p-1 border border-white/10">
             <button
               onClick={() => setGameMode("manual")}
-              className={`flex-1 py-3 px-4 rounded-lg text-sm font-medium transition-all duration-200 ${
+              className={`flex-1 py-3 px-4 rounded-4xl text-sm font-medium transition-all duration-200 ${
                 gameMode === "manual"
-                  ? "bg-[#df500f]/80 text-white backdrop-blur-sm shadow-lg"
+                  ? "bg-red-600/80 text-white backdrop-blur-sm shadow-lg"
                   : "text-white/60 hover:text-white hover:bg-white/5"
               }`}
             >
@@ -185,9 +185,9 @@ export default function MinesGame({ compact = false }: MinesGameProps) {
             </button>
             <button
               onClick={() => setGameMode("auto")}
-              className={`flex-1 py-3 px-4 rounded-lg text-sm font-medium transition-all duration-200 ${
+              className={`flex-1 py-3 px-4 rounded-4xl text-sm font-medium transition-all duration-200 ${
                 gameMode === "auto"
-                  ? "bg-[#df500f]/80 text-white backdrop-blur-sm shadow-lg"
+                  ? "bg-red-600/80 text-white backdrop-blur-sm shadow-lg"
                   : "text-white/60 hover:text-white hover:bg-white/5"
               }`}
             >
@@ -204,7 +204,7 @@ export default function MinesGame({ compact = false }: MinesGameProps) {
                 <Input
                   value={betAmount}
                   onChange={(e) => setBetAmount(e.target.value)}
-                  className="bg-black/30 backdrop-blur-sm border-white/20 text-white pr-20 focus:border-[#df500f]/50 focus:ring-[#df500f]/20 h-12 rounded-xl"
+                  className="bg-black/30 backdrop-blur-sm border-white/20 text-white pr-20 focus:border-red-600/50 focus:ring-red-600/20 h-12 rounded-4xl"
                   placeholder="0.00"
                   disabled={isPlaying}
                 />
@@ -233,10 +233,10 @@ export default function MinesGame({ compact = false }: MinesGameProps) {
           <div className="space-y-2">
             <label className="text-sm text-white/70 font-medium">Mines</label>
             <Select value={mineCount} onValueChange={setMineCount} disabled={isPlaying}>
-              <SelectTrigger className="bg-black/30 backdrop-blur-sm border-white/20 text-white h-12 rounded-xl focus:border-[#df500f]/50">
+              <SelectTrigger className="bg-black/30 backdrop-blur-sm border-white/20 text-white h-12 rounded-4xl focus:border-red-600/50">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent className="bg-black/90 backdrop-blur-md border-white/20 rounded-xl">
+              <SelectContent className="bg-black/90 backdrop-blur-md border-white/20 rounded-4xl">
                 {Array.from({ length: 24 }, (_, i) => (
                   <SelectItem
                     key={i + 1}
@@ -256,14 +256,14 @@ export default function MinesGame({ compact = false }: MinesGameProps) {
             <Input
               value={gemCount}
               readOnly
-              className="bg-black/30 backdrop-blur-sm border-white/20 text-white h-12 rounded-xl"
+              className="bg-black/30 backdrop-blur-sm border-white/20 text-white h-12 rounded-4xl"
             />
           </div>
 
           {/* Bet Button */}
           <Button
             onClick={handleBet}
-            className="w-full bg-gradient-to-r from-[#df500f] to-[#ff6b35] hover:from-[#c4460d] hover:to-[#df500f] text-white font-semibold py-4 h-14 rounded-xl border-0 shadow-lg transition-all duration-200 transform hover:scale-[1.02]"
+            className="w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-4 h-14 rounded-4xl border-0 shadow-lg transition-all duration-200 transform hover:scale-[1.02]"
           >
             {isPlaying ? "💰 Cash Out" : "🎯 Start Game"}
           </Button>
@@ -272,7 +272,7 @@ export default function MinesGame({ compact = false }: MinesGameProps) {
           <Button
             onClick={handleRandomPick}
             variant="outline"
-            className="w-full border-white/20 text-white hover:text-white hover:bg-white/10 bg-black/30 backdrop-blur-sm h-12 rounded-xl transition-all duration-200"
+            className="w-full border-white/20 text-white hover:text-white hover:bg-white/10 bg-black/30 backdrop-blur-sm h-12 rounded-4xl transition-all duration-200"
             disabled={!isPlaying || gameOver}
           >
             🎲 Random Pick
@@ -285,9 +285,9 @@ export default function MinesGame({ compact = false }: MinesGameProps) {
               <Input
                 value={totalProfit}
                 readOnly
-                className="bg-black/30 backdrop-blur-sm border-white/20 text-white flex-1 h-12 rounded-xl"
+                className="bg-black/30 backdrop-blur-sm border-white/20 text-white flex-1 h-12 rounded-4xl"
               />
-              <div className="w-10 h-10 bg-gradient-to-r from-[#df500f] to-[#ff6b35] rounded-full flex items-center justify-center shadow-lg">
+              <div className="w-10 h-10 bg-red-600 rounded-full flex items-center justify-center shadow-lg">
                 <span className="text-white text-sm font-bold">₹</span>
               </div>
             </div>
@@ -356,7 +356,7 @@ export default function MinesGame({ compact = false }: MinesGameProps) {
               ) : (
                 <>
                   <div className="text-8xl mb-6 animate-pulse">💎</div>
-                  <div className="w-full h-64 bg-gradient-to-br from-[#df500f]/20 to-[#ff6b35]/20 rounded-2xl flex items-center justify-center overflow-hidden">
+                  <div className="w-full h-64 bg-red-600/20 rounded-2xl flex items-center justify-center overflow-hidden">
                     <img
                       src="/nachoo.gif"
                       alt="Successful cashout"
@@ -372,7 +372,7 @@ export default function MinesGame({ compact = false }: MinesGameProps) {
 
               <Button
                 onClick={closePopup}
-                className="w-full bg-gradient-to-r from-[#df500f] to-[#ff6b35] hover:from-[#c4460d] hover:to-[#df500f] text-white h-12 rounded-xl font-semibold"
+                className="w-full bg-red-600 hover:bg-red-700 text-white h-12 rounded-4xl font-semibold"
               >
                 Continue Playing
               </Button>
