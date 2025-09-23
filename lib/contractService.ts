@@ -61,72 +61,142 @@ export class ContractService {
   }
 
   /**
-   * Resolve a game (typically called by oracle)
-   * @param accountId - Account ID of the player
+   * Resolve a game (user calls this directly when they win)
    * @param multiplier - Win multiplier
    * @returns Transaction hash
    */
-  async resolveGame(accountId: string, multiplier: number = 1.0): Promise<string> {
+  async resolveGame(multiplier: number = 1.0): Promise<string> {
+    console.log('🎯 ContractService.resolveGame called')
+    console.log('📊 Multiplier:', multiplier)
+    console.log('📋 Contract ID:', this.contractId)
+    console.log('👤 Account ID (from wallet):', this.account.accountId)
+    
     try {
       const wallet = await this.selector.wallet()
       
-      const result = await wallet.signAndSendTransaction({
+      const transactionParams = {
         signerId: this.account.accountId,
         receiverId: this.contractId,
         actions: [
           {
-            type: 'FunctionCall',
+            type: 'FunctionCall' as const,
             params: {
               methodName: 'resolve_game',
-              args: { accountId, multiplier },
+              args: { multiplier },
               gas: '300000000000000', // 300 TGas
               deposit: '0',
             },
           },
         ],
-      })
-
+      }
+      
+      console.log('📡 Sending resolve_game transaction:', transactionParams)
+      
+      const result = await wallet.signAndSendTransaction(transactionParams)
+      
+      console.log('✅ resolve_game transaction successful:', result.transaction.hash)
       return result.transaction.hash
     } catch (error: any) {
-      console.error('Error resolving game:', error)
-      throw new Error(error.message || 'Failed to resolve game')
+      console.error('❌ Error resolving game:', error)
+      console.error('Error details:', error)
+      
+      // Extract more detailed error information
+      let errorMessage = 'Failed to resolve game'
+      
+      if (error.message) {
+        errorMessage = error.message
+      } else if (error.kind && error.kind.FunctionCallError) {
+        const executionError = error.kind.FunctionCallError.ExecutionError
+        if (executionError && executionError.includes('Only oracle can resolve games')) {
+          errorMessage = 'Contract still has oracle restrictions. Please redeploy the contract with the latest version.'
+        } else if (executionError) {
+          errorMessage = `Contract error: ${executionError}`
+        }
+      }
+      
+      console.error('📋 Final error message:', errorMessage)
+      
+      // For oracle restriction errors, provide a more user-friendly message
+      if (errorMessage.includes('oracle restrictions')) {
+        throw new Error('Contract needs to be updated. Your game was completed successfully, but automatic resolution is not available yet.')
+      }
+      
+      throw new Error(errorMessage)
     }
   }
 
+
   /**
-   * Get user statistics
+   * Get user statistics - inspired by the betting interface approach
    * @param accountId - User account ID
    * @returns User stats object
    */
   async getUserStats(accountId: string): Promise<any> {
+    console.log('🔍 ContractService.getUserStats called with accountId:', accountId)
+    console.log('📋 Contract ID:', this.contractId)
+    
     try {
+      const requestBody = {
+        jsonrpc: '2.0',
+        id: 'dontcare',
+        method: 'query',
+        params: {
+          request_type: 'call_function',
+          finality: 'final',
+          account_id: this.contractId,
+          method_name: 'get_user_stats',
+          args_base64: Buffer.from(JSON.stringify({ accountId })).toString('base64'),
+        },
+      }
+      
+      console.log('📡 Making RPC request to NEAR:', requestBody)
+      
       const response = await fetch('https://rpc.testnet.near.org', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          jsonrpc: '2.0',
-          id: 'dontcare',
-          method: 'query',
-          params: {
-            request_type: 'call_function',
-            finality: 'final',
-            account_id: this.contractId,
-            method_name: 'get_user_stats',
-            args_base64: Buffer.from(JSON.stringify({ accountId })).toString('base64'),
-          },
-        }),
+        body: JSON.stringify(requestBody),
       })
 
-      const data = await response.json()
-      if (data.result && data.result.result) {
-        return JSON.parse(Buffer.from(data.result.result, 'base64').toString())
+      console.log('📨 RPC response status:', response.status)
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
       }
+      
+      const data = await response.json()
+      console.log('📊 RPC response data:', data)
+      
+      // Handle RPC errors
+      if (data.error) {
+        console.error('❌ RPC error:', data.error)
+        if (data.error.message?.includes('Contract method is not found')) {
+          throw new Error('Contract method is not found')
+        }
+        throw new Error(data.error.message || 'RPC error occurred')
+      }
+      
+      if (data.result && data.result.result) {
+        const decodedResult = JSON.parse(Buffer.from(data.result.result, 'base64').toString())
+        console.log('✅ Decoded user stats:', decodedResult)
+        return decodedResult
+      }
+      
+      console.log('❌ No result in RPC response - user may not have stats yet')
       return null
     } catch (error: any) {
-      console.error('Error getting user stats:', error)
-      throw new Error(error.message || 'Failed to get user stats')
+      console.error('❌ Error getting user stats:', error)
+      console.error('Error details:', error)
+      
+      // Re-throw with more specific error messages
+      if (error.message?.includes('Contract method is not found')) {
+        throw new Error('Contract method is not found')
+      } else if (error.message?.includes('HTTP error')) {
+        throw new Error('Network error occurred while fetching user stats')
+      } else {
+        throw new Error(error.message || 'Failed to get user stats')
+      }
     }
   }
 

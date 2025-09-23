@@ -3,9 +3,12 @@
 import * as React from "react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import confetti from "canvas-confetti"
 import { X } from "lucide-react"
 import useSound from "use-sound"
+import { ContractService } from "@/lib/contractService"
+import { useWallet } from "@/contexts/WalletContext"
 
 type GameStatus = "idle" | "in-progress" | "won" | "lost" | "cashed-out"
 
@@ -29,14 +32,22 @@ type PopupState = {
 }
 
 export function PaajiOnTop({ rows = 8, cols = 4 }: PaajiOnTopProps) {
+  const { selector, accountId, isConnected, getBalance } = useWallet()
   const [status, setStatus] = React.useState<GameStatus>("idle")
   const [currentRow, setCurrentRow] = React.useState(0)
   const [config, setConfig] = React.useState<RowConfig[]>([])
   const [steps, setSteps] = React.useState(0)
   const [difficulty, setDifficulty] = React.useState<Difficulty>("Easy")
   const [numCols, setNumCols] = React.useState(cols)
-  const [betAmount, setBetAmount] = React.useState<string>("0.00000000")
+  const [betAmount, setBetAmount] = React.useState<string>("0.01")
   const [popup, setPopup] = React.useState<PopupState>({ isOpen: false, type: null })
+  const [contractService, setContractService] = React.useState<ContractService | null>(null)
+  const [isLoading, setIsLoading] = React.useState(false)
+  const [gameId, setGameId] = React.useState<string>("")
+  const [transactionHash, setTransactionHash] = React.useState<string>("")
+  const [errorMessage, setErrorMessage] = React.useState<string>("")
+  const [successMessage, setSuccessMessage] = React.useState<string>("")
+  const [walletBalance, setWalletBalance] = React.useState<string>("0")
 
   const [PaajiWinSound] = useSound("/sounds/PaajiWin.mp3");
   const [BetSound] = useSound("/sounds/Bet.mp3");
@@ -49,6 +60,50 @@ export function PaajiOnTop({ rows = 8, cols = 4 }: PaajiOnTopProps) {
   }, [steps])
 
   const canPlay = status === "in-progress"
+
+  // Initialize contract service when wallet is connected
+  React.useEffect(() => {
+    if (selector && accountId) {
+      const account = selector.store.getState().accounts[0]
+      if (account) {
+        setContractService(new ContractService(selector, account))
+      }
+    }
+  }, [selector, accountId])
+
+  // Fetch wallet balance when connected
+  React.useEffect(() => {
+    const fetchBalance = async () => {
+      if (isConnected && getBalance) {
+        try {
+          const balance = await getBalance()
+          setWalletBalance(balance)
+        } catch (error) {
+          console.error("Error fetching balance:", error)
+        }
+      }
+    }
+    
+    fetchBalance()
+    // Refresh balance every 30 seconds
+    const interval = setInterval(fetchBalance, 30000)
+    return () => clearInterval(interval)
+  }, [isConnected, getBalance])
+
+  // Clear messages after a delay
+  const clearMessages = () => {
+    setErrorMessage("")
+    setSuccessMessage("")
+    setTransactionHash("")
+  }
+
+  // Auto-clear messages after 5 seconds
+  React.useEffect(() => {
+    if (errorMessage || successMessage) {
+      const timer = setTimeout(clearMessages, 5000)
+      return () => clearTimeout(timer)
+    }
+  }, [errorMessage, successMessage])
 
   React.useEffect(() => {
     if (difficulty === "Easy") setNumCols(4)
@@ -69,13 +124,59 @@ export function PaajiOnTop({ rows = 8, cols = 4 }: PaajiOnTopProps) {
     return next
   }
 
-  function startGame() {
-    BetSound()
-    setConfig(generateBoard())
-    setStatus("in-progress")
-    setCurrentRow(0)
-    setSteps(0)
-    setPopup({ isOpen: false, type: null })
+  const startGame = async () => {
+    clearMessages()
+    
+    if (!contractService || !isConnected) {
+      setErrorMessage("Please connect your wallet first")
+      return
+    }
+
+    // Validate bet amount first
+    const bet = Number.parseFloat(betAmount)
+    if (bet <= 0 || isNaN(bet)) {
+      setErrorMessage("Please enter a valid bet amount")
+      return
+    }
+    
+    if (bet < 0.01) {
+      setErrorMessage("Minimum bet amount is 0.01 NEAR")
+      return
+    }
+    
+    try {
+      setIsLoading(true)
+      const newGameId = `paaji-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+      setGameId(newGameId)
+      
+      const hash = await contractService.startGame(newGameId, betAmount)
+      setTransactionHash(hash)
+      setSuccessMessage(`Game started! Transaction: ${hash.slice(0, 8)}...`)
+      
+      BetSound()
+      setConfig(generateBoard())
+      setStatus("in-progress")
+      setCurrentRow(0)
+      setSteps(0)
+      setPopup({ isOpen: false, type: null })
+    } catch (error: any) {
+      console.error("Error starting game:", error)
+      let errorMsg = "Error starting game. Please try again."
+      
+      if (error.message?.includes("User closed the window")) {
+        errorMsg = "Transaction cancelled. Please try again when ready."
+      } else if (error.message?.includes("insufficient balance")) {
+        errorMsg = "Insufficient balance. Please add more NEAR to your wallet."
+      } else if (error.message?.includes("already have a pending bet")) {
+        errorMsg = "You already have a pending bet. Please wait for it to be resolved."
+      } else if (error.message) {
+        errorMsg = error.message
+      }
+      
+      setErrorMessage(errorMsg)
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   function resetGame() {
@@ -86,14 +187,35 @@ export function PaajiOnTop({ rows = 8, cols = 4 }: PaajiOnTopProps) {
     setPopup({ isOpen: false, type: null })
   }
 
-  function cashOut() {
+  const cashOut = async () => {
     if (status === "in-progress") {
-      setStatus("cashed-out")
-      PaajiCashoutSound()
+      // User is cashing out - call resolve_game with the multiplier
+      try {
+        console.log("💰 User cashing out - calling resolve_game with multiplier:", multiplier)
+        if (contractService) {
+          await contractService.resolveGame(parseFloat(multiplier))
+          console.log("✅ resolve_game called successfully")
+          
+          setStatus("cashed-out")
+          PaajiCashoutSound()
+          setSuccessMessage(`Cashed out at ${multiplier}×! Winnings have been credited to your account.`)
+        } else {
+          // Fallback if no contract service
+          setStatus("cashed-out")
+          PaajiCashoutSound()
+          setSuccessMessage(`Cashed out at ${multiplier}×! (Note: Please try resolving manually from stats page)`)
+        }
+      } catch (error: any) {
+        console.error("❌ Error calling resolve_game:", error)
+        // Still show the cashout UI even if resolve_game fails
+        setStatus("cashed-out")
+        PaajiCashoutSound()
+        setSuccessMessage(`Cashed out at ${multiplier}×! (Note: Please try resolving manually from stats page)`)
+      }
     }
   }
 
-  function pickTile(row: number, col: number) {
+  const pickTile = async (row: number, col: number) => {
     if (!canPlay) return
     if (row !== currentRow) return
 
@@ -113,13 +235,26 @@ export function PaajiOnTop({ rows = 8, cols = 4 }: PaajiOnTopProps) {
         setCurrentRow(nextRow)
         setStatus("won")
         PaajiCashoutSound()
-      
+        
+        // User reached the top - automatically call resolve_game
+        try {
+          console.log("🏆 User reached the top - calling resolve_game with multiplier:", multiplier)
+          if (contractService) {
+            await contractService.resolveGame(parseFloat(multiplier))
+            console.log("✅ resolve_game called successfully for win")
+            setSuccessMessage(`You reached the top at ${multiplier}×! Winnings have been credited to your account.`)
+          }
+        } catch (error: any) {
+          console.error("❌ Error calling resolve_game for win:", error)
+          setSuccessMessage(`You reached the top at ${multiplier}×! (Note: Please try resolving manually from stats page)`)
+        }
       } else {
         setCurrentRow(nextRow)
       }
     } else {
       setStatus("lost")
       PaajiLoseSound()
+      setErrorMessage("Game lost! No winnings to resolve.")
     }
   }
 
@@ -175,39 +310,110 @@ export function PaajiOnTop({ rows = 8, cols = 4 }: PaajiOnTopProps) {
 
   const closePopup = () => setPopup({ isOpen: false, type: null })
 
+  const adjustBetAmount = (factor: number) => {
+    const current = Number.parseFloat(betAmount) || 0
+    setBetAmount((current * factor).toFixed(2))
+  }
+
   return (
     <div className="mx-auto max-w-6xl w-full pt-4">
       <div className="grid grid-cols-1 lg:grid-cols-[300px_minmax(0,1fr)] gap-4">
         {/* Left control panel */}
         <div className="rounded-2xl border border-border bg-background/60 p-3 lg:p-4">
-          <div className="mb-3 grid grid-cols-2 gap-2 rounded-xl border border-border p-1">
-            <button
-              className="h-8 rounded-lg text-xs font-semibold bg-primary text-primary-foreground"
-              aria-pressed={true}
-            >
-              Manual
-            </button>
-            <button className="h-8 rounded-lg text-xs font-semibold text-foreground/70 hover:text-foreground hover:bg-muted transition">
-              Auto
-            </button>
-          </div>
-
           <div className="space-y-3">
+            {/* Wallet Status */}
+            {!isConnected ? (
+              <div className="bg-yellow-600/20 border border-yellow-500/30 rounded-4xl p-3 text-center">
+                <p className="text-yellow-400 text-sm font-medium">
+                  🔗 Connect your wallet to start playing
+                </p>
+              </div>
+            ) : (
+              <div className="bg-green-600/20 border border-green-500/30 rounded-4xl p-3 text-center">
+                <p className="text-green-400 text-sm font-medium">
+                  💰 Balance: {walletBalance} NEAR
+                </p>
+                <p className="text-green-300 text-xs">
+                  Account: {accountId?.slice(0, 12)}...
+                </p>
+              </div>
+            )}
+
+            {/* Error Message */}
+            {errorMessage && (
+              <div className="bg-red-600/20 border border-red-500/30 rounded-4xl p-3 text-center">
+                <p className="text-red-400 text-sm font-medium">
+                  ⚠️ {errorMessage}
+                </p>
+              </div>
+            )}
+
+            {/* Success Message */}
+            {successMessage && (
+              <div className="bg-green-600/20 border border-green-500/30 rounded-4xl p-3 text-center">
+                <p className="text-green-400 text-sm font-medium">
+                  ✅ {successMessage}
+                </p>
+              </div>
+            )}
+
+            {/* Transaction Hash */}
+            {transactionHash && (
+              <div className="bg-blue-600/20 border border-blue-500/30 rounded-4xl p-3 text-center">
+                <p className="text-blue-400 text-xs font-medium">
+                  🔗 TX: {transactionHash.slice(0, 12)}...
+                </p>
+                <a 
+                  href={`https://explorer.testnet.near.org/transactions/${transactionHash}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-300 hover:text-blue-200 text-xs underline"
+                >
+                  View on Explorer
+                </a>
+              </div>
+            )}
+
+            {/* Game Mode Toggle */}
+            <div className="grid grid-cols-2 gap-2 rounded-xl border border-border p-1">
+              <button
+                className="h-8 rounded-lg text-xs font-semibold bg-primary text-primary-foreground"
+                aria-pressed={true}
+              >
+                Manual
+              </button>
+              <button className="h-8 rounded-lg text-xs font-semibold text-foreground/70 hover:text-foreground hover:bg-muted transition">
+                Auto
+              </button>
+            </div>
             <div>
               <div className="mb-1 text-[11px] uppercase tracking-wide text-muted-foreground">Bet Amount</div>
               <div className="flex items-center gap-2">
                 <div className="flex-1 rounded-xl border border-border bg-background/70 px-3 py-2 text-sm">
-                  <input
+                  <Input
                     value={betAmount}
                     onChange={(e) => setBetAmount(e.target.value)}
-                    inputMode="decimal"
-                    className="w-full bg-transparent outline-none"
-                    aria-label="Bet amount"
+                    className="w-full bg-transparent outline-none border-0 h-8 p-0"
+                    placeholder="0.01"
+                    disabled={status === "in-progress"}
                   />
                 </div>
-                <button className="h-9 rounded-xl border border-border px-2 text-xs text-foreground/80 hover:bg-muted">½</button>
-                <button className="h-9 rounded-xl border border-border px-2 text-xs text-foreground/80 hover:bg-muted">2×</button>
+                <button
+                  onClick={() => adjustBetAmount(0.5)}
+                  className="h-9 rounded-xl border border-border px-2 text-xs text-foreground/80 hover:bg-muted"
+                  disabled={status === "in-progress"}
+                >
+                  ½
+                </button>
+                <button
+                  onClick={() => adjustBetAmount(2)}
+                  className="h-9 rounded-xl border border-border px-2 text-xs text-foreground/80 hover:bg-muted"
+                  disabled={status === "in-progress"}
+                >
+                  2×
+                </button>
               </div>
+              <div className="mt-1 text-[11px] text-foreground/50">Min: 0.01 NEAR</div>
             </div>
 
             <div>
@@ -236,13 +442,17 @@ export function PaajiOnTop({ rows = 8, cols = 4 }: PaajiOnTopProps) {
 
             <div className="pt-1">
               {status !== "in-progress" ? (
-                <Button className="w-full h-10 rounded-xl" onClick={startGame}>
-                  Bet
+                <Button 
+                  className="w-full h-10 rounded-xl" 
+                  onClick={startGame}
+                  disabled={!isConnected || isLoading}
+                >
+                  {isLoading ? "⏳ Processing..." : "🎯 Start Game"}
                 </Button>
               ) : (
                 <div className="grid grid-cols-2 gap-2">
                   <Button variant="secondary" className="h-10 rounded-xl" onClick={cashOut}>
-                    Cash out
+                    💰 Cash Out
                   </Button>
                   <Button variant="ghost" className="h-10 rounded-xl" onClick={resetGame}>
                     Reset
@@ -258,9 +468,14 @@ export function PaajiOnTop({ rows = 8, cols = 4 }: PaajiOnTopProps) {
             </div>
 
             <div>
-              <div className="mb-1 text-[11px] uppercase tracking-wide text-muted-foreground">Total Profit ({(1.0).toFixed(2)}x)</div>
+              <div className="mb-1 text-[11px] uppercase tracking-wide text-muted-foreground">Total Profit ({multiplier}×)</div>
               <div className="flex items-center gap-2 rounded-xl border border-border bg-background/70 px-3 py-2 text-sm">
-                <span className="text-foreground/60">{Number(0).toFixed(8)}</span>
+                <span className="text-foreground/60">
+                  ₹{status === "in-progress" || status === "cashed-out" || status === "won" 
+                    ? (parseFloat(betAmount) * (parseFloat(multiplier) - 1)).toFixed(2)
+                    : "0.00"
+                  }
+                </span>
               </div>
             </div>
 

@@ -222,11 +222,27 @@ export default function MinesGame({ compact = false }: MinesGameProps) {
     }
 
     if (isPlaying) {
-      CashoutSound()
-      setSuccessMessage(`Cashed out at ${multiplier.toFixed(2)}×! Oracle will resolve the bet automatically.`)
-      setPopup({ isOpen: true, type: "gem", cellId: null })
-      setIsPlaying(false)
-      setGameOver(true)
+      // User is cashing out - call resolve_game with the multiplier
+      try {
+        console.log("💰 User cashing out - calling resolve_game with multiplier:", multiplier)
+        
+        await contractService.resolveGame(multiplier)
+        console.log("✅ resolve_game called successfully")
+        
+        CashoutSound()
+        setSuccessMessage(`Cashed out at ${multiplier.toFixed(2)}×! Winnings have been credited to your account.`)
+        setPopup({ isOpen: true, type: "gem", cellId: null })
+        setIsPlaying(false)
+        setGameOver(true)
+      } catch (error: any) {
+        console.error("❌ Error calling resolve_game:", error)
+        // Still show the cashout UI even if resolve_game fails
+        CashoutSound()
+        setSuccessMessage(`Cashed out at ${multiplier.toFixed(2)}×! (Note: ${error.message || 'Please try resolving manually from stats page'})`)
+        setPopup({ isOpen: true, type: "gem", cellId: null })
+        setIsPlaying(false)
+        setGameOver(true)
+      }
     } else {
       // Start new game - validate bet amount first
       const bet = Number.parseFloat(betAmount)

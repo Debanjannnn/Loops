@@ -11,6 +11,7 @@ export type SidebarSection =
   | "live"
   | "slots"
   | "sports"
+  | "stats"
   | "docs"
   | "support"
   | "affiliates"

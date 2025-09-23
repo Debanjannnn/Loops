@@ -17,6 +17,7 @@ import {
   HelpCircle,
   FileText,
   UsersRound,
+  BarChart3,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useUI } from "@/contexts/UIContext"
@@ -35,6 +36,7 @@ const primaryNav: NavItem[] = [
   { label: "Mine", href: "/mines", icon: Bomb, key: "mines" },
   { label: "Cashout", href: "/rugsfun", icon: Rocket, key: "rugs" },
   { label: "Paaji On Top", href: "/paaji", icon: Rocket, key: "paaji" },
+  { label: "Statistics", href: "/stats", icon: BarChart3, key: "stats" },
 ]
 
 const secondaryNav: NavItem[] = [

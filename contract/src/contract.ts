@@ -1,12 +1,13 @@
 // SPDX-License-Identifier: MIT
-// Example NEAR smart contract for betting games
+// Simplified NEAR smart contract for betting games (user resolves wins)
 
 import { 
   NearBindgen, 
   near, 
   call, 
   view, 
-  assert
+  assert, 
+  UnorderedMap 
 } from 'near-sdk-js';
 
 // --------------------------------------
@@ -33,8 +34,18 @@ class PendingBet {
 // --------------------------------------
 @NearBindgen({})
 export class Games {
+  users: UnorderedMap<User> = new UnorderedMap<User>('users');
+  pendingBets: UnorderedMap<PendingBet> = new UnorderedMap<PendingBet>('pending');
   contractBalance: bigint = BigInt(0);
-  oracleAccountId: string = "oracle.testnet";
+
+  private getUser(accountId: string): User {
+    let user = this.users.get(accountId);
+    if (user === null) {
+      user = new User();
+      this.users.set(accountId, user);
+    }
+    return user;
+  }
 
   // Step 1: Player starts the game with a stake (escrow)
   @call({ payableFunction: true })
@@ -43,72 +54,69 @@ export class Games {
     const bet = near.attachedDeposit();
     
     assert(bet > BigInt(0), "Attach NEAR to play");
+    assert(this.pendingBets.get(accountId) === null, "You already have a pending bet");
 
-    // The bet amount is automatically escrowed by NEAR when attached to payable function
-    // If user loses, the amount stays in the contract automatically
-    // If user wins, oracle will call resolve_game to credit winnings
-    
+    const newBet = new PendingBet();
+    newBet.gameId = gameId;
+    newBet.amount = bet;
+    newBet.blockHeight = near.blockHeight();
+
+    this.pendingBets.set(accountId, newBet);
+
     near.log(`${accountId} started ${gameId} with ${bet} yoctoNEAR (escrowed)`);
   }
 
-  // Step 2: Oracle resolves the game for winners only (only oracle can call this)
+  // Step 2: Player resolves the game only if they win
   @call({})
-  resolve_game({ accountId, multiplier }: { accountId: string, multiplier: number }): void {
-    // Access control: only oracle can resolve games
-    assert(near.predecessorAccountId() === this.oracleAccountId, "Only oracle can resolve games");
+  resolve_game({ multiplier }: { multiplier: number }): void {
+    const accountId = near.predecessorAccountId();
+    const pending = this.pendingBets.get(accountId);
+    assert(pending !== null, "No pending bet found");
 
-    // Calculate winnings based on the original bet amount
-    // Note: In a full implementation, you'd need to track the original bet amount
-    // For now, we'll use a placeholder calculation
-    
-    near.log(`${accountId} WON! x${multiplier} - Oracle will credit winnings`);
+    let user = this.getUser(accountId);
+    user.totalBet += pending.amount;
+
+    // Calculate winnings
+    const winnings = pending.amount * BigInt(Math.floor(multiplier * 100)) / BigInt(100);
+    user.totalWon += winnings;
+    user.withdrawableBalance += winnings;
+
+    near.log(`${accountId} WON! Bet ${pending.amount}, multiplier x${multiplier}, credited ${winnings} yoctoNEAR`);
+
+    // Remove bet & save user
+    this.pendingBets.remove(accountId);
+    this.users.set(accountId, user);
   }
 
   // Withdraw winnings
   @call({})
   withdraw(): void {
     const accountId = near.predecessorAccountId();
-    near.log(`${accountId} withdrew`);
-  }
+    let user = this.getUser(accountId);
 
-  // Admin function to set oracle account
-  @call({})
-  set_oracle_account({ oracleAccountId }: { oracleAccountId: string }): void {
-    // Only the contract owner can set oracle
-    assert(near.predecessorAccountId() === near.currentAccountId(), "Only contract owner can set oracle");
-    this.oracleAccountId = oracleAccountId;
-    near.log(`Oracle account set to: ${oracleAccountId}`);
+    const amountToWithdraw = user.withdrawableBalance;
+    assert(amountToWithdraw > BigInt(0), "Nothing to withdraw");
+
+    // reset before transfer to prevent reentrancy
+    user.withdrawableBalance = BigInt(0);
+    this.users.set(accountId, user);
+
+    const promiseId = near.promiseBatchCreate(accountId);
+    near.promiseBatchActionTransfer(promiseId, amountToWithdraw);
+
+    near.log(`${accountId} withdrew ${amountToWithdraw} yoctoNEAR`);
   }
 
   // ------------------------------
   // View Methods
   // ------------------------------
-
   @view({})
   get_user_stats({ accountId }: { accountId: string }): User | null {
-    // Return default user stats for now
-    const user = new User();
-    return user;
-  }
-
-  @view({})
-  get_contract_total_losses(): string {
-    return this.contractBalance.toString();
+    return this.users.get(accountId) || null;
   }
 
   @view({})
   get_pending_bet({ accountId }: { accountId: string }): PendingBet | null {
-    // Return null for now (no pending bets stored)
-    return null;
-  }
-
-  @view({})
-  get_total_users(): number {
-    return 0;
-  }
-
-  @view({})
-  get_oracle_account(): string {
-    return this.oracleAccountId;
+    return this.pendingBets.get(accountId) || null;
   }
 }

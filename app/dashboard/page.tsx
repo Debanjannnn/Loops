@@ -16,6 +16,7 @@ import GameSlotCard from "@/components/dashboard/ui/GameSlotCard"
 import FeaturePills from "@/components/dashboard/ui/FeaturePills"
 import ChatSidebar from "@/components/dashboard/ui/ChatSidebar"
 import PaajiOnTop from "@/components/games/PaajiOnTop/Paaji"
+import UserStats from "@/components/dashboard/ui/UserStats"
 
 export default function DashboardPage() {
   const { selectedSection, setSelectedSection, mode } = useUI()
@@ -121,6 +122,10 @@ export default function DashboardPage() {
 
     if (selectedSection === "paaji") {
       return <PaajiOnTop />
+    }
+
+    if (selectedSection === "stats") {
+      return <UserStats />
     }
 
     if (selectedSection === "games") {
