@@ -41,7 +41,7 @@ export function PaajiOnTop({ rows = 8, cols = 4 }: PaajiOnTopProps) {
   const [PaajiWinSound] = useSound("/sounds/PaajiWin.mp3");
   const [BetSound] = useSound("/sounds/Bet.mp3");
   const[PaajiLoseSound] = useSound("/sounds/PaajiLose.mp3");
-  const[PaajiCashoutSound] = useSound("/sounds/PaajiCashout.mp3");
+  const[PaajiCashoutSound] = useSound("/sounds/PaajiCashOut.mp3");
 
   const multiplier = React.useMemo(() => {
     const base = 1
@@ -112,6 +112,7 @@ export function PaajiOnTop({ rows = 8, cols = 4 }: PaajiOnTopProps) {
       if (nextRow >= rows) {
         setCurrentRow(nextRow)
         setStatus("won")
+        PaajiCashoutSound()
       
       } else {
         setCurrentRow(nextRow)
