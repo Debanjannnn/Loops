@@ -187,8 +187,8 @@ export default function MinesGame({ compact = false }: MinesGameProps) {
             <button
               onClick={() => setGameMode("manual")}
               className={`flex-1 py-3 px-4 rounded-4xl text-sm font-medium transition-all duration-200 ${gameMode === "manual"
-                  ? "bg-red-600/80 text-white backdrop-blur-sm shadow-lg"
-                  : "text-white/60 hover:text-white hover:bg-white/5"
+                ? "bg-red-600/80 text-white backdrop-blur-sm shadow-lg"
+                : "text-white/60 hover:text-white hover:bg-white/5"
                 }`}
             >
               <Zap className="w-4 h-4 inline mr-2" />
@@ -197,8 +197,8 @@ export default function MinesGame({ compact = false }: MinesGameProps) {
             <button
               onClick={() => setGameMode("auto")}
               className={`flex-1 py-3 px-4 rounded-4xl text-sm font-medium transition-all duration-200 ${gameMode === "auto"
-                  ? "bg-red-600/80 text-white backdrop-blur-sm shadow-lg"
-                  : "text-white/60 hover:text-white hover:bg-white/5"
+                ? "bg-red-600/80 text-white backdrop-blur-sm shadow-lg"
+                : "text-white/60 hover:text-white hover:bg-white/5"
                 }`}
             >
               <TrendingUp className="w-4 h-4 inline mr-2" />
@@ -325,7 +325,7 @@ export default function MinesGame({ compact = false }: MinesGameProps) {
               `}
             >
               {cell.isRevealed && (
-                <div className="w-8 h-8 flex items-center justify-center">
+                <div className="w-full h-full flex items-center justify-center p-2">
                   {cell.isMine ? (
                     <img src="/Bomb.svg" alt="Bomb" className="w-full h-full object-contain filter drop-shadow-lg" />
                   ) : (
