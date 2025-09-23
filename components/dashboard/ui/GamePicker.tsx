@@ -1,12 +1,14 @@
 "use client"
 import { Card } from "@/components/ui/card"
 import { Play, Zap, Target, Users, Star } from "lucide-react"
+import { useUI } from "@/contexts/UIContext"
 
 interface GamePickerProps {
   onPick: (game: "rugs" | "mines") => void
 }
 
 export default function GamePicker({ onPick }: GamePickerProps) {
+  const { setSelectedSection, setMode } = useUI()
   const games = [
     {
       id: "rugs" as const,
@@ -51,7 +53,16 @@ export default function GamePicker({ onPick }: GamePickerProps) {
           const Icon = game.icon
 
           return (
-            <button key={game.id} type="button" onClick={() => onPick(game.id)} className="text-left group">
+            <button
+              key={game.id}
+              type="button"
+              onClick={() => {
+                setMode("casino")
+                setSelectedSection(game.id)
+                onPick(game.id)
+              }}
+              className="text-left group"
+            >
               <Card className="overflow-hidden bg-black/30 border-white/10 hover:border-white/30 hover:shadow-2xl transition-all duration-300 rounded-3xl group-hover:scale-[1.02] group-hover:bg-black/40 relative">
                 {/* Hot Badge */}
                 {game.isHot && (

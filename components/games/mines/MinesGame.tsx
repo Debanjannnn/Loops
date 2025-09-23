@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card } from "@/components/ui/card"
 import { X, Zap, TrendingUp } from "lucide-react"
+import confetti from "canvas-confetti"
 
 interface MineCell {
   id: number
@@ -128,10 +129,42 @@ export default function MinesGame({ compact = false }: MinesGameProps) {
     return result
   }
 
+  // Fire side cannons confetti for 3 seconds
+  const triggerCashoutConfetti = () => {
+    const end = Date.now() + 3 * 1000
+    const colors = ["#a786ff", "#fd8bbc", "#eca184", "#f8deb1"]
+
+    const frame = () => {
+      if (Date.now() > end) return
+
+      confetti({
+        particleCount: 2,
+        angle: 60,
+        spread: 55,
+        startVelocity: 60,
+        origin: { x: 0, y: 0.5 },
+        colors,
+      })
+      confetti({
+        particleCount: 2,
+        angle: 120,
+        spread: 55,
+        startVelocity: 60,
+        origin: { x: 1, y: 0.5 },
+        colors,
+      })
+
+      requestAnimationFrame(frame)
+    }
+
+    frame()
+  }
+
   const handleBet = () => {
     if (isPlaying) {
       // Always show success popup on cash out
       setPopup({ isOpen: true, type: "gem", cellId: null })
+      triggerCashoutConfetti()
       setIsPlaying(false)
       setGameOver(true)
     } else {

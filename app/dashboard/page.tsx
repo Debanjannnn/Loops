@@ -89,13 +89,13 @@ export default function DashboardPage() {
                   title="Mines"
                   provider=""
                   imageSrc="/minegame.png"
-                  onClick={() => setActiveGame("mines")}
+                  onClick={() => { setSelectedSection("games"); setActiveGame("mines"); }}
                 />
                 <GameSlotCard
                   title="Cashout"
                   provider=""
                   imageSrc="/cashout.png"
-                  onClick={() => setActiveGame("rugs")}
+                  onClick={() => { setSelectedSection("games"); setActiveGame("rugs"); }}
                 />
               </div>
             </div>
