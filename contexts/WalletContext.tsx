@@ -10,6 +10,7 @@ import { setupHereWallet } from '@near-wallet-selector/here-wallet'
 import { setupMeteorWallet } from '@near-wallet-selector/meteor-wallet'
 import { setupNightly } from '@near-wallet-selector/nightly'
 import { setupLedger } from '@near-wallet-selector/ledger'
+import { CONTRACT_ID } from '@/near.config'
 
 interface WalletContextType {
   selector: WalletSelector | null
@@ -54,7 +55,7 @@ export function WalletProvider({ children }: WalletProviderProps) {
       })
 
       const walletModal = setupModal(walletSelector, {
-        contractId: 'test.near',
+        contractId: CONTRACT_ID,
       })
 
       setSelector(walletSelector)

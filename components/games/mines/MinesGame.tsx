@@ -8,8 +8,8 @@ import { Card } from "@/components/ui/card"
 import { X } from "lucide-react"
 import useSound from "use-sound"
 import confetti from "canvas-confetti"
-
-
+import { ContractService } from "@/lib/contractService"
+import { useWallet } from "@/contexts/WalletContext"
 
 interface MineCell {
   id: number
@@ -29,6 +29,7 @@ interface MinesGameProps {
 }
 
 export default function MinesGame({ compact = false }: MinesGameProps) {
+  const { selector, accountId, isConnected, getBalance } = useWallet()
   const [betAmount, setBetAmount] = useState("0.00")
   const [mineCount, setMineCount] = useState("3")
   const [gemCount, setGemCount] = useState("22")
@@ -39,12 +40,19 @@ export default function MinesGame({ compact = false }: MinesGameProps) {
   const [multiplier, setMultiplier] = useState(1.0)
   const [popup, setPopup] = useState<PopupState>({ isOpen: false, type: null, cellId: null })
   const [loseImageSrc, setLoseImageSrc] = useState("/sad-monkey.gif")
+  const [contractService, setContractService] = useState<ContractService | null>(null)
+  const [isLoading, setIsLoading] = useState(false)
+  const [gameId, setGameId] = useState<string>("")
+  const [transactionHash, setTransactionHash] = useState<string>("")
+  const [errorMessage, setErrorMessage] = useState<string>("")
+  const [successMessage, setSuccessMessage] = useState<string>("")
+  const [walletBalance, setWalletBalance] = useState<string>("0")
   const loseMessages = [
     "Every pro loses once. Bounce back stronger.",
     "Close call? Your comeback starts here.",
     "The next bet could flip it all.",
     "Losses are just the setup for a bigger win.",
-    "Don’t stop now — your turn is coming.",
+    "Don't stop now — your turn is coming.",
     "You were this close 👌 — go again.",
     "Even champions lose a round. Win the next one.",
   ]
@@ -94,12 +102,55 @@ export default function MinesGame({ compact = false }: MinesGameProps) {
     return perRevealMultiplierByMines[21]
   }
 
-
   useEffect(() => {
     const mines = Number.parseInt(mineCount)
     const gems = 25 - mines
     setGemCount(gems.toString())
   }, [mineCount])
+
+  // Initialize contract service when wallet is connected
+  useEffect(() => {
+    if (selector && accountId) {
+      const account = selector.store.getState().accounts[0]
+      if (account) {
+        setContractService(new ContractService(selector, account))
+      }
+    }
+  }, [selector, accountId])
+
+  // Fetch wallet balance when connected
+  useEffect(() => {
+    const fetchBalance = async () => {
+      if (isConnected && getBalance) {
+        try {
+          const balance = await getBalance()
+          setWalletBalance(balance)
+        } catch (error) {
+          console.error("Error fetching balance:", error)
+        }
+      }
+    }
+    
+    fetchBalance()
+    // Refresh balance every 30 seconds
+    const interval = setInterval(fetchBalance, 30000)
+    return () => clearInterval(interval)
+  }, [isConnected, getBalance])
+
+  // Clear messages after a delay
+  const clearMessages = () => {
+    setErrorMessage("")
+    setSuccessMessage("")
+    setTransactionHash("")
+  }
+
+  // Auto-clear messages after 5 seconds
+  useEffect(() => {
+    if (errorMessage || successMessage) {
+      const timer = setTimeout(clearMessages, 5000)
+      return () => clearTimeout(timer)
+    }
+  }, [errorMessage, successMessage])
 
   const initializeGame = () => {
     const mines = Number.parseInt(mineCount)
@@ -130,7 +181,7 @@ export default function MinesGame({ compact = false }: MinesGameProps) {
     setTotalProfit("0.00")
   }
 
-  const handleCellClick = (cellId: number) => {
+  const handleCellClick = async (cellId: number) => {
     if (!isPlaying || gameOver) return
 
     const cell = grid[cellId]
@@ -147,6 +198,7 @@ export default function MinesGame({ compact = false }: MinesGameProps) {
       setGameOver(true)
       setIsPlaying(false)
       setTotalProfit("0.00")
+      setErrorMessage("Game lost! Oracle will resolve the bet automatically.")
     } else {
       // Update multiplier based on per-reveal factor tied to mine count
       const mines = Number.parseInt(mineCount)
@@ -161,18 +213,63 @@ export default function MinesGame({ compact = false }: MinesGameProps) {
     }
   }
 
+  const handleBet = async () => {
+    clearMessages()
+    
+    if (!contractService || !isConnected) {
+      setErrorMessage("Please connect your wallet first")
+      return
+    }
 
-  const handleBet = () => {
     if (isPlaying) {
       CashoutSound()
-      // Always show success popup on cash out
+      setSuccessMessage(`Cashed out at ${multiplier.toFixed(2)}×! Oracle will resolve the bet automatically.`)
       setPopup({ isOpen: true, type: "gem", cellId: null })
       setIsPlaying(false)
       setGameOver(true)
     } else {
-      setIsPlaying(true)
-      initializeGame()
-      BetSound()
+      // Start new game - validate bet amount first
+      const bet = Number.parseFloat(betAmount)
+      if (bet <= 0 || isNaN(bet)) {
+        setErrorMessage("Please enter a valid bet amount")
+        return
+      }
+      
+      if (bet < 0.01) {
+        setErrorMessage("Minimum bet amount is 0.01 NEAR")
+        return
+      }
+      
+      try {
+        setIsLoading(true)
+        const newGameId = `mines-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+        setGameId(newGameId)
+        
+        const hash = await contractService.startGame(newGameId, betAmount)
+        setTransactionHash(hash)
+        setSuccessMessage(`Game started! Transaction: ${hash.slice(0, 8)}...`)
+        
+        setIsPlaying(true)
+        initializeGame()
+        BetSound()
+      } catch (error: any) {
+        console.error("Error starting game:", error)
+        let errorMsg = "Error starting game. Please try again."
+        
+        if (error.message?.includes("User closed the window")) {
+          errorMsg = "Transaction cancelled. Please try again when ready."
+        } else if (error.message?.includes("insufficient balance")) {
+          errorMsg = "Insufficient balance. Please add more NEAR to your wallet."
+        } else if (error.message?.includes("already have a pending bet")) {
+          errorMsg = "You already have a pending bet. Please wait for it to be resolved."
+        } else if (error.message) {
+          errorMsg = error.message
+        }
+        
+        setErrorMessage(errorMsg)
+      } finally {
+        setIsLoading(false)
+      }
     }
   }
 
@@ -241,6 +338,59 @@ export default function MinesGame({ compact = false }: MinesGameProps) {
         {/* Left control panel */}
         <div className={`rounded-2xl border border-border bg-background/60 p-3 lg:p-4`}>
           <div className="space-y-3">
+            {/* Wallet Status */}
+            {!isConnected ? (
+              <div className="bg-yellow-600/20 border border-yellow-500/30 rounded-4xl p-3 text-center">
+                <p className="text-yellow-400 text-sm font-medium">
+                  🔗 Connect your wallet to start playing
+                </p>
+              </div>
+            ) : (
+              <div className="bg-green-600/20 border border-green-500/30 rounded-4xl p-3 text-center">
+                <p className="text-green-400 text-sm font-medium">
+                  💰 Balance: {walletBalance} NEAR
+                </p>
+                <p className="text-green-300 text-xs">
+                  Account: {accountId?.slice(0, 12)}...
+                </p>
+              </div>
+            )}
+
+            {/* Error Message */}
+            {errorMessage && (
+              <div className="bg-red-600/20 border border-red-500/30 rounded-4xl p-3 text-center">
+                <p className="text-red-400 text-sm font-medium">
+                  ⚠️ {errorMessage}
+                </p>
+              </div>
+            )}
+
+            {/* Success Message */}
+            {successMessage && (
+              <div className="bg-green-600/20 border border-green-500/30 rounded-4xl p-3 text-center">
+                <p className="text-green-400 text-sm font-medium">
+                  ✅ {successMessage}
+                </p>
+              </div>
+            )}
+
+            {/* Transaction Hash */}
+            {transactionHash && (
+              <div className="bg-blue-600/20 border border-blue-500/30 rounded-4xl p-3 text-center">
+                <p className="text-blue-400 text-xs font-medium">
+                  🔗 TX: {transactionHash.slice(0, 12)}...
+                </p>
+                <a 
+                  href={`https://explorer.testnet.near.org/transactions/${transactionHash}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-300 hover:text-blue-200 text-xs underline"
+                >
+                  View on Explorer
+                </a>
+              </div>
+            )}
+
             {/* Game Mode Toggle */}
             <div className="grid grid-cols-2 gap-2 rounded-xl border border-border p-1">
               <button
@@ -295,7 +445,7 @@ export default function MinesGame({ compact = false }: MinesGameProps) {
                   2×
                 </button>
               </div>
-              <div className="mt-1 text-[11px] text-foreground/50">₹0.00</div>
+              <div className="mt-1 text-[11px] text-foreground/50">Min: 0.01 NEAR</div>
             </div>
 
             {/* Mines and Gems */}
@@ -324,8 +474,12 @@ export default function MinesGame({ compact = false }: MinesGameProps) {
             {/* Bet / Cash out */}
             <div className="pt-1">
               {!isPlaying ? (
-                <Button className="w-full h-10 rounded-xl" onClick={handleBet}>
-                  🎯 Start Game
+                <Button 
+                  className="w-full h-10 rounded-xl" 
+                  onClick={handleBet}
+                  disabled={!isConnected || isLoading}
+                >
+                  {isLoading ? "⏳ Processing..." : "🎯 Start Game"}
                 </Button>
               ) : (
                 <Button variant="secondary" className="w-full h-10 rounded-xl" onClick={handleBet}>
