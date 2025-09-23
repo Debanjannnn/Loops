@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import confetti from "canvas-confetti"
 import { X } from "lucide-react"
+import useSound from "use-sound"
 
 type GameStatus = "idle" | "in-progress" | "won" | "lost" | "cashed-out"
 
@@ -37,6 +38,11 @@ export function PaajiOnTop({ rows = 8, cols = 4 }: PaajiOnTopProps) {
   const [betAmount, setBetAmount] = React.useState<string>("0.00000000")
   const [popup, setPopup] = React.useState<PopupState>({ isOpen: false, type: null })
 
+  const [PaajiWinSound] = useSound("/sounds/PaajiWin.mp3");
+  const [BetSound] = useSound("/sounds/Bet.mp3");
+  const[PaajiLoseSound] = useSound("/sounds/PaajiLose.mp3");
+  const[PaajiCashoutSound] = useSound("/sounds/PaajiCashout.mp3");
+
   const multiplier = React.useMemo(() => {
     const base = 1
     return (base * Math.pow(1.25, steps)).toFixed(2)
@@ -64,6 +70,7 @@ export function PaajiOnTop({ rows = 8, cols = 4 }: PaajiOnTopProps) {
   }
 
   function startGame() {
+    BetSound()
     setConfig(generateBoard())
     setStatus("in-progress")
     setCurrentRow(0)
@@ -82,6 +89,7 @@ export function PaajiOnTop({ rows = 8, cols = 4 }: PaajiOnTopProps) {
   function cashOut() {
     if (status === "in-progress") {
       setStatus("cashed-out")
+      PaajiCashoutSound()
     }
   }
 
@@ -100,14 +108,17 @@ export function PaajiOnTop({ rows = 8, cols = 4 }: PaajiOnTopProps) {
     if (isSafe) {
       const nextRow = currentRow + 1
       setSteps((s) => s + 1)
+      PaajiWinSound()
       if (nextRow >= rows) {
         setCurrentRow(nextRow)
         setStatus("won")
+      
       } else {
         setCurrentRow(nextRow)
       }
     } else {
       setStatus("lost")
+      PaajiLoseSound()
     }
   }
 
@@ -117,6 +128,7 @@ export function PaajiOnTop({ rows = 8, cols = 4 }: PaajiOnTopProps) {
     }
     if (status === "won" || status === "cashed-out") {
       setPopup({ isOpen: true, type: "win" })
+      
     }
   }, [status])
 
