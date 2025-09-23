@@ -33,12 +33,8 @@ type NavItem = {
 const primaryNav: NavItem[] = [
   { label: "Home", href: "/", icon: Home, key: "home" },
   { label: "Mine", href: "/mines", icon: Bomb, key: "mines" },
-  { label: "Rugsfun", href: "/rugsfun", icon: Rocket, key: "rugs" },
-  { label: "Blackjack", href: "/blackjack", icon: Cards, key: "blackjack" },
-  { label: "Live Games", href: "/live", icon: TvMinimalPlay, key: "live" },
-  { label: "Slots", href: "/slots", icon: Dice5, key: "slots" },
-  { label: "Hot Sport Events", href: "/sports", icon: Flame, variant: "danger", key: "sports" },
-  { label: "Blackjack", href: "/blackjack-new", icon: Cards, variant: "new", key: "blackjack-new" },
+  { label: "Cashout", href: "/rugsfun", icon: Rocket, key: "rugs" },
+  { label: "Paaji On Top", href: "/paaji", icon: Rocket, key: "paaji" },
 ]
 
 const secondaryNav: NavItem[] = [

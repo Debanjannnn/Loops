@@ -13,16 +13,19 @@ interface ChatMessage {
 }
 
 export default function ChatSidebar() {
-  const now = Date.now()
-  const [messages, setMessages] = useState<ChatMessage[]>(() => [
-    { id: crypto.randomUUID(), author: "System", content: "Welcome to All Chat! Be nice and have fun.", timestamp: now - 1000 * 60 * 6 },
-    { id: crypto.randomUUID(), author: "Ava", content: "Just hit 3x on Cashout!", timestamp: now - 1000 * 60 * 5 },
-    { id: crypto.randomUUID(), author: "Leo", content: "Mines is super hot rn 🔥", timestamp: now - 1000 * 60 * 5 + 15000 },
-    { id: crypto.randomUUID(), author: "Mira", content: "Anyone tried the new Blackjack?", timestamp: now - 1000 * 60 * 4 + 20000 },
-    { id: crypto.randomUUID(), author: "Dev", content: "GL HF everyone!", timestamp: now - 1000 * 60 * 3 + 10000 },
-    { id: crypto.randomUUID(), author: "Kai", content: "Cashed out early… still profit 😅", timestamp: now - 1000 * 60 * 2 + 45000 },
-    { id: crypto.randomUUID(), author: "Nia", content: "Saving up for a big run tonight.", timestamp: now - 1000 * 60 * 1 + 30000 },
-  ])
+  const [messages, setMessages] = useState<ChatMessage[]>([])
+  useEffect(() => {
+    const now = Date.now()
+    setMessages([
+      { id: crypto.randomUUID(), author: "System", content: "Welcome to All Chat! Be nice and have fun.", timestamp: now - 1000 * 60 * 6 },
+      { id: crypto.randomUUID(), author: "Ava", content: "Just hit 3x on Cashout!", timestamp: now - 1000 * 60 * 5 },
+      { id: crypto.randomUUID(), author: "Leo", content: "Mines is super hot rn 🔥", timestamp: now - 1000 * 60 * 5 + 15000 },
+      { id: crypto.randomUUID(), author: "Mira", content: "Anyone tried the new Blackjack?", timestamp: now - 1000 * 60 * 4 + 20000 },
+      { id: crypto.randomUUID(), author: "Dev", content: "GL HF everyone!", timestamp: now - 1000 * 60 * 3 + 10000 },
+      { id: crypto.randomUUID(), author: "Kai", content: "Cashed out early… still profit 😅", timestamp: now - 1000 * 60 * 2 + 45000 },
+      { id: crypto.randomUUID(), author: "Nia", content: "Saving up for a big run tonight.", timestamp: now - 1000 * 60 * 1 + 30000 },
+    ])
+  }, [])
   const [input, setInput] = useState<string>("")
   const scrollRef = useRef<HTMLDivElement | null>(null)
 
