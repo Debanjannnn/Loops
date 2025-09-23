@@ -6,7 +6,9 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card } from "@/components/ui/card"
 import { X, Zap, TrendingUp } from "lucide-react"
-import confetti from "canvas-confetti"
+import useSound from "use-sound"
+
+
 
 interface MineCell {
   id: number
@@ -54,6 +56,11 @@ export default function MinesGame({ compact = false }: MinesGameProps) {
       isGem: false,
     })),
   )
+  const [BetSound] = useSound("/sounds/Bet.mp3");
+  const [BombSound] = useSound("/sounds/Bomb.mp3");
+  const [CashoutSound] = useSound("/sounds/Cashout.mp3");
+  const [GemsSound] = useSound("/sounds/Gems.mp3");
+
 
   useEffect(() => {
     const mines = Number.parseInt(mineCount)
@@ -99,6 +106,7 @@ export default function MinesGame({ compact = false }: MinesGameProps) {
     setGrid((prev) => prev.map((c) => (c.id === cellId ? { ...c, isRevealed: true } : c)))
 
     if (cell.isMine) {
+      BombSound()
       setLoseImageSrc(Math.random() < 0.5 ? "/loosewin.png" : "/sad-monkey.gif")
       setLoseMessage(loseMessages[Math.floor(Math.random() * loseMessages.length)])
       setPopup({ isOpen: true, type: "mine", cellId })
@@ -112,6 +120,7 @@ export default function MinesGame({ compact = false }: MinesGameProps) {
       const totalGems = Number.parseInt(gemCount)
       const newMultiplier = calculateMultiplier(revealedGems, totalGems, Number.parseInt(mineCount))
       setMultiplier(newMultiplier)
+      GemsSound()
 
       const bet = Number.parseFloat(betAmount) || 0
       const profit = bet * (newMultiplier - 1)
@@ -129,47 +138,17 @@ export default function MinesGame({ compact = false }: MinesGameProps) {
     return result
   }
 
-  // Fire side cannons confetti for 3 seconds
-  const triggerCashoutConfetti = () => {
-    const end = Date.now() + 3 * 1000
-    const colors = ["#a786ff", "#fd8bbc", "#eca184", "#f8deb1"]
-
-    const frame = () => {
-      if (Date.now() > end) return
-
-      confetti({
-        particleCount: 2,
-        angle: 60,
-        spread: 55,
-        startVelocity: 60,
-        origin: { x: 0, y: 0.5 },
-        colors,
-      })
-      confetti({
-        particleCount: 2,
-        angle: 120,
-        spread: 55,
-        startVelocity: 60,
-        origin: { x: 1, y: 0.5 },
-        colors,
-      })
-
-      requestAnimationFrame(frame)
-    }
-
-    frame()
-  }
-
   const handleBet = () => {
     if (isPlaying) {
+      CashoutSound()
       // Always show success popup on cash out
       setPopup({ isOpen: true, type: "gem", cellId: null })
-      triggerCashoutConfetti()
       setIsPlaying(false)
       setGameOver(true)
     } else {
       setIsPlaying(true)
       initializeGame()
+      BetSound()
     }
   }
 
@@ -207,22 +186,20 @@ export default function MinesGame({ compact = false }: MinesGameProps) {
           <div className="flex bg-black/30 backdrop-blur-sm rounded-4xl p-1 border border-white/10">
             <button
               onClick={() => setGameMode("manual")}
-              className={`flex-1 py-3 px-4 rounded-4xl text-sm font-medium transition-all duration-200 ${
-                gameMode === "manual"
+              className={`flex-1 py-3 px-4 rounded-4xl text-sm font-medium transition-all duration-200 ${gameMode === "manual"
                   ? "bg-red-600/80 text-white backdrop-blur-sm shadow-lg"
                   : "text-white/60 hover:text-white hover:bg-white/5"
-              }`}
+                }`}
             >
               <Zap className="w-4 h-4 inline mr-2" />
               Manual
             </button>
             <button
               onClick={() => setGameMode("auto")}
-              className={`flex-1 py-3 px-4 rounded-4xl text-sm font-medium transition-all duration-200 ${
-                gameMode === "auto"
+              className={`flex-1 py-3 px-4 rounded-4xl text-sm font-medium transition-all duration-200 ${gameMode === "auto"
                   ? "bg-red-600/80 text-white backdrop-blur-sm shadow-lg"
                   : "text-white/60 hover:text-white hover:bg-white/5"
-              }`}
+                }`}
             >
               <TrendingUp className="w-4 h-4 inline mr-2" />
               Auto
@@ -338,17 +315,24 @@ export default function MinesGame({ compact = false }: MinesGameProps) {
               onClick={() => handleCellClick(cell.id)}
               className={`
                 w-full h-full flex items-center justify-center cursor-pointer transition-all duration-300 backdrop-blur-sm border-2 rounded-xl hover:scale-105
-                ${
-                  cell.isRevealed
-                    ? cell.isMine
-                      ? "bg-red-500/80 hover:bg-red-400/70 border-red-400/50 shadow-lg shadow-red-500/20"
-                      : "bg-gradient-to-br from-[#df500f]/80 to-[#ff6b35]/80 hover:from-[#ff6b35]/70 hover:to-[#df500f]/70 border-[#df500f]/50 shadow-lg shadow-[#df500f]/20"
-                    : "bg-black/30 border-white/20 hover:bg-white/10 hover:border-white/30 shadow-lg"
+                ${cell.isRevealed
+                  ? cell.isMine
+                    ? "bg-red-500/80 hover:bg-red-400/70 border-red-400/50 shadow-lg shadow-red-500/20"
+                    : "bg-gradient-to-br from-[#df500f]/80 to-[#ff6b35]/80 hover:from-[#ff6b35]/70 hover:to-[#df500f]/70 border-[#df500f]/50 shadow-lg shadow-[#df500f]/20"
+                  : "bg-black/30 border-white/20 hover:bg-white/10 hover:border-white/30 shadow-lg"
                 }
                 ${!isPlaying || gameOver ? "cursor-not-allowed opacity-50" : "hover:shadow-xl"}
               `}
             >
-              {cell.isRevealed && <span className="text-3xl filter drop-shadow-lg">{cell.isMine ? "💣" : "💎"}</span>}
+              {cell.isRevealed && (
+                <div className="w-8 h-8 flex items-center justify-center">
+                  {cell.isMine ? (
+                    <img src="/Bomb.svg" alt="Bomb" className="w-full h-full object-contain filter drop-shadow-lg" />
+                  ) : (
+                    <img src="/Gems.svg" alt="Gem" className="w-full h-full object-contain filter drop-shadow-lg" />
+                  )}
+                </div>
+              )}
             </Card>
           ))}
         </div>
@@ -375,7 +359,9 @@ export default function MinesGame({ compact = false }: MinesGameProps) {
             <div className="text-center space-y-4">
               {popup.type === "mine" ? (
                 <>
-                  <div className="text-8xl mb-6 animate-bounce">💣</div>
+                  <div className="w-32 h-32 mb-6 animate-bounce flex items-center justify-center mx-auto">
+                    <img src="/Bomb.svg" alt="Bomb" className="w-full h-full object-contain" />
+                  </div>
                   <div className="w-full h-64 bg-gradient-to-br from-red-500/20 to-red-700/20 rounded-2xl flex items-center justify-center overflow-hidden">
                     <img
                       src={loseImageSrc || "/placeholder.svg"}
@@ -388,7 +374,9 @@ export default function MinesGame({ compact = false }: MinesGameProps) {
                 </>
               ) : (
                 <>
-                  <div className="text-8xl mb-6 animate-pulse">💎</div>
+                  <div className="w-32 h-32 mb-6 animate-pulse flex items-center justify-center mx-auto">
+                    <img src="/Gems.svg" alt="Gem" className="w-full h-full object-contain" />
+                  </div>
                   <div className="w-full h-64 bg-red-600/20 rounded-2xl flex items-center justify-center overflow-hidden">
                     <img
                       src="/nachoo.gif"
