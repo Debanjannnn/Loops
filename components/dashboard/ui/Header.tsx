@@ -1,6 +1,7 @@
 "use client"
 import { Card } from "@/components/ui/card"
 import { Wallet, TrendingUp, Settings } from "lucide-react"
+import ConnectWalletButton from "@/components/wallet/ConnectWalletButton"
 
 interface DashboardHeaderProps {
   title?: string
@@ -38,6 +39,8 @@ export default function DashboardHeader({ title = "Dashboard", balanceInINR }: D
                 </div>
               </div>
             </div>
+
+            <ConnectWalletButton />
 
             <button className="w-10 h-10 bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl flex items-center justify-center hover:bg-white/20 transition-all duration-200">
               <Settings className="w-5 h-5 text-white/70" />

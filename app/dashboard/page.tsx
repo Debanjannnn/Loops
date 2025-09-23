@@ -173,10 +173,7 @@ export default function DashboardPage() {
     <div
       className="min-h-screen w-full relative overflow-hidden"
       style={{
-        backgroundImage: "url('/images/gradient.png')",
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-        backgroundRepeat: "no-repeat",
+        background: "linear-gradient(135deg, #0f0f23 0%, #1a1a2e 25%, #16213e 50%, #0f3460 75%, #533483 100%)",
       }}
     >
       {/* Dark overlay for better contrast */}
