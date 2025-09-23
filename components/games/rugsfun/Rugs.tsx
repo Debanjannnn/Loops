@@ -77,11 +77,11 @@ export default function CrashGame({ compact = false }: CrashGameProps) {
   })
 
   const getMultiplierColor = (multiplier: number) => {
-    if (multiplier >= 10) return "bg-yellow-500 text-black"
-    if (multiplier >= 5) return "bg-green-500 text-white"
-    if (multiplier >= 2) return "bg-blue-500 text-white"
-    if (multiplier > 1) return "bg-purple-500 text-white"
-    return "bg-red-500 text-white"
+    if (multiplier >= 10) return "bg-primary text-primary-foreground"
+    if (multiplier >= 5) return "bg-primary/80 text-primary-foreground"
+    if (multiplier >= 2) return "bg-primary/20 text-primary"
+    if (multiplier > 1) return "bg-muted text-foreground"
+    return "bg-destructive text-destructive-foreground"
   }
 
   const getWeightedCrashPoint = (): number => {
@@ -189,7 +189,8 @@ export default function CrashGame({ compact = false }: CrashGameProps) {
     canvas.style.height = rect.height + "px"
 
     ctx.clearRect(0, 0, rect.width, rect.height)
-    ctx.fillStyle = "#000000"
+    const computedBg = window.getComputedStyle(canvas).backgroundColor || "transparent"
+    ctx.fillStyle = computedBg
     ctx.fillRect(0, 0, rect.width, rect.height)
 
     const width = rect.width
@@ -350,16 +351,14 @@ export default function CrashGame({ compact = false }: CrashGameProps) {
   }
 
   return (
-    <div className="flex h-full text-white relative overflow-hidden min-h-0">
-      <div className={`relative z-10 ${compact ? "w-64" : "w-80"} bg-black/40 backdrop-blur-md border-0 ${compact ? "p-4" : "p-6"} h-full overflow-hidden`}>
+    <div className="flex h-full text-foreground relative overflow-hidden min-h-0">
+      <div className={`relative z-10 ${compact ? "w-64" : "w-80"} border border-border bg-background/60 backdrop-blur ${compact ? "p-4" : "p-6"} h-full overflow-hidden`}>
         <div className="space-y-5">
-          <div className="flex bg-gray-900 rounded-4xl p-1 border border-gray-700">
+          <div className="flex rounded-2xl p-1 border border-border bg-background/60">
             <button
               onClick={() => setGameMode("manual")}
-              className={`flex-1 py-2.5 px-3 rounded-4xl text-sm font-medium transition-all duration-200 ${
-                gameMode === "manual"
-                  ? "bg-red-600/80 text-white shadow-lg"
-                  : "text-gray-300 hover:text-white hover:bg-gray-700"
+              className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-semibold transition-all duration-200 ${
+                gameMode === "manual" ? "bg-primary text-primary-foreground" : "text-foreground/70 hover:text-foreground hover:bg-muted"
               }`}
             >
               <Zap className="w-4 h-4 inline mr-2" />
@@ -367,10 +366,8 @@ export default function CrashGame({ compact = false }: CrashGameProps) {
             </button>
             <button
               onClick={() => setGameMode("auto")}
-              className={`flex-1 py-2.5 px-3 rounded-4xl text-sm font-medium transition-all duration-200 ${
-                gameMode === "auto"
-                  ? "bg-red-600/80 text-white shadow-lg"
-                  : "text-gray-300 hover:text-white hover:bg-gray-700"
+              className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-semibold transition-all duration-200 ${
+                gameMode === "auto" ? "bg-primary text-primary-foreground" : "text-foreground/70 hover:text-foreground hover:bg-muted"
               }`}
             >
               <TrendingUp className="w-4 h-4 inline mr-2" />
@@ -379,27 +376,27 @@ export default function CrashGame({ compact = false }: CrashGameProps) {
           </div>
 
           <div className="space-y-3">
-            <label className="text-sm text-gray-300 font-medium">Bet Amount</label>
+            <label className="text-sm text-foreground/70 font-medium">Bet Amount</label>
             <div className="flex items-center space-x-2">
               <div className="flex-1 relative">
                 <Input
                   value={betAmount}
                   onChange={(e) => setBetAmount(e.target.value)}
-                  className="bg-gray-800 border-gray-600 text-white pr-20 focus:border-red-600/50 focus:ring-red-600/20 h-10 rounded-4xl"
+                  className="bg-background/70 border border-border text-foreground pr-20 focus:border-primary/50 focus:ring-primary/20 h-10 rounded-2xl"
                   placeholder="0.00"
                   disabled={isPlaying}
                 />
                 <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center space-x-2">
                   <button
                     onClick={() => adjustBetAmount(0.5)}
-                    className="text-[#df500f] hover:text-[#ff6b35] text-xs font-bold px-2 py-1 rounded-md hover:bg-gray-700 transition-all"
+                    className="text-foreground/80 hover:text-foreground text-xs font-bold px-2 py-1 rounded-md hover:bg-muted transition-all border border-border"
                     disabled={isPlaying}
                   >
                     ½
                   </button>
                   <button
                     onClick={() => adjustBetAmount(2)}
-                    className="text-[#df500f] hover:text-[#ff6b35] text-xs font-bold px-2 py-1 rounded-md hover:bg-gray-700 transition-all"
+                    className="text-foreground/80 hover:text-foreground text-xs font-bold px-2 py-1 rounded-md hover:bg-muted transition-all border border-border"
                     disabled={isPlaying}
                   >
                     2×
@@ -407,21 +404,21 @@ export default function CrashGame({ compact = false }: CrashGameProps) {
                 </div>
               </div>
             </div>
-            <div className="text-xs text-gray-500">₹0.00</div>
+            <div className="text-xs text-foreground/50">₹0.00</div>
           </div>
 
           <div className="space-y-3">
-            <label className="text-sm text-gray-300 font-medium">Auto Cashout</label>
+            <label className="text-sm text-foreground/70 font-medium">Auto Cashout</label>
             <Input
               value={autoCashout}
               onChange={(e) => setAutoCashout(e.target.value)}
-              className="bg-gray-800 border-gray-600 text-white h-10 rounded-4xl focus:border-red-600/50"
+              className="bg-background/70 border border-border text-foreground h-10 rounded-2xl focus:border-primary/50"
               placeholder="2.00"
             />
           </div>
 
           <div className="space-y-3">
-            <label className="text-sm text-gray-300 font-medium">Recent Results</label>
+            <label className="text-sm text-foreground/70 font-medium">Recent Results</label>
             <div className="flex flex-wrap gap-1">
               {roundHistory.slice(0, 10).map((round, index) => (
                 <div
@@ -437,24 +434,24 @@ export default function CrashGame({ compact = false }: CrashGameProps) {
           <Button
             onClick={handleBet}
             disabled={!gameRound.isRunning && !isPlaying}
-            className="w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-3 h-12 rounded-4xl border-0 shadow-lg transition-all duration-200 transform hover:scale-[1.02]"
+            className="w-full font-semibold py-3 h-12 rounded-2xl"
           >
             {isPlaying ? "💰 Cash Out" : "🚀 Place Bet"}
           </Button>
 
           <div className="space-y-3">
-            <label className="text-sm text-gray-300 font-medium">Total Profit ({currentMultiplier.toFixed(2)}×)</label>
+            <label className="text-sm text-foreground/70 font-medium">Total Profit ({currentMultiplier.toFixed(2)}×)</label>
             <div className="flex items-center space-x-3">
               <Input
                 value={totalProfit}
                 readOnly
-                className="bg-gray-800 border-gray-600 text-white flex-1 h-10 rounded-4xl"
+                className="bg-background/70 border border-border text-foreground flex-1 h-9 rounded-2xl"
               />
-              <div className="w-9 h-9 bg-red-600 rounded-full flex items-center justify-center shadow-lg">
-                <span className="text-white text-xs font-bold">₹</span>
+              <div className="w-8 h-8 rounded-full flex items-center justify-center border border-border bg-background/60">
+                <span className="text-foreground text-[10px] font-bold">₹</span>
               </div>
             </div>
-            <div className="text-xs text-gray-500">₹0.00</div>
+            <div className="text-xs text-foreground/50">₹0.00</div>
           </div>
         </div>
       </div>
@@ -463,19 +460,19 @@ export default function CrashGame({ compact = false }: CrashGameProps) {
         <div className={`flex-1 relative ${compact ? "p-2" : "p-3"} min-h-0`}>
           <canvas
             ref={canvasRef}
-            className="w-full h-full rounded-xl bg-black/30 backdrop-blur-sm border border-white/10"
+            className="w-full h-full rounded-xl bg-background/30 border border-border"
             style={{ minHeight: compact ? "280px" : "360px" }}
           />
 
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <div className={`text-5xl font-bold ${gameRound.crashed ? "text-red-400" : "text-white"}`}>
+            <div className={`text-5xl font-bold ${gameRound.crashed ? "text-destructive" : "text-foreground"}`}>
               {Math.min(currentMultiplier, 7).toFixed(2)}x
             </div>
           </div>
 
           {gameRound.crashed && (
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <div className="text-3xl font-bold text-red-400 animate-pulse mt-16">CRASHED!</div>
+              <div className="text-3xl font-bold text-destructive animate-pulse mt-16">CRASHED!</div>
             </div>
           )}
         </div>

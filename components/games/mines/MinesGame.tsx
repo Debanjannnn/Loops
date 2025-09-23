@@ -5,8 +5,9 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card } from "@/components/ui/card"
-import { X, Zap, TrendingUp } from "lucide-react"
+import { X } from "lucide-react"
 import useSound from "use-sound"
+import confetti from "canvas-confetti"
 
 
 
@@ -60,6 +61,38 @@ export default function MinesGame({ compact = false }: MinesGameProps) {
   const [BombSound] = useSound("/sounds/Bomb.mp3");
   const [CashoutSound] = useSound("/sounds/Cashout.mp3");
   const [GemsSound] = useSound("/sounds/Gems.mp3");
+
+  // Per-reveal multiplier factors based on number of mines
+  const perRevealMultiplierByMines: Record<number, number> = {
+    3: 1.15,
+    4: 1.25,
+    5: 1.35,
+    6: 1.45,
+    7: 1.55,
+    8: 1.65,
+    9: 1.75,
+    10: 1.85,
+    11: 2.0,
+    12: 2.2,
+    13: 2.4,
+    14: 2.6,
+    15: 2.8,
+    16: 3.0,
+    17: 3.25,
+    18: 3.5,
+    19: 3.75,
+    20: 4.0,
+    21: 4.5,
+  }
+
+  const getPerRevealFactor = (mines: number) => {
+    if (perRevealMultiplierByMines[mines as keyof typeof perRevealMultiplierByMines]) {
+      return perRevealMultiplierByMines[mines as keyof typeof perRevealMultiplierByMines]
+    }
+    // Clamp outside the provided range to nearest known value
+    if (mines < 3) return perRevealMultiplierByMines[3]
+    return perRevealMultiplierByMines[21]
+  }
 
 
   useEffect(() => {
@@ -115,10 +148,10 @@ export default function MinesGame({ compact = false }: MinesGameProps) {
       setIsPlaying(false)
       setTotalProfit("0.00")
     } else {
-      // Just update multiplier and profit without showing popup
-      const revealedGems = grid.filter((c) => c.isRevealed && c.isGem).length + 1
-      const totalGems = Number.parseInt(gemCount)
-      const newMultiplier = calculateMultiplier(revealedGems, totalGems, Number.parseInt(mineCount))
+      // Update multiplier based on per-reveal factor tied to mine count
+      const mines = Number.parseInt(mineCount)
+      const factor = getPerRevealFactor(mines)
+      const newMultiplier = multiplier * factor
       setMultiplier(newMultiplier)
       GemsSound()
 
@@ -128,15 +161,6 @@ export default function MinesGame({ compact = false }: MinesGameProps) {
     }
   }
 
-  const calculateMultiplier = (revealedGems: number, totalGems: number, mines: number) => {
-    if (revealedGems === 0) return 1.0
-
-    let result = 1.0
-    for (let i = 0; i < revealedGems; i++) {
-      result *= (25 - i) / (25 - mines - i)
-    }
-    return result
-  }
 
   const handleBet = () => {
     if (isPlaying) {
@@ -171,236 +195,248 @@ export default function MinesGame({ compact = false }: MinesGameProps) {
     setPopup({ isOpen: false, type: null, cellId: null })
   }
 
+  useEffect(() => {
+    if (!(popup.isOpen && popup.type === "gem")) return
+
+    const end = Date.now() + 3 * 1000
+    const colors = ["#a786ff", "#fd8bbc", "#eca184", "#f8deb1"]
+    let rafId: number
+    let cancelled = false
+
+    const frame = () => {
+      if (cancelled) return
+      if (Date.now() > end) return
+
+      confetti({
+        particleCount: 2,
+        angle: 60,
+        spread: 55,
+        startVelocity: 60,
+        origin: { x: 0, y: 0.5 },
+        colors,
+      })
+      confetti({
+        particleCount: 2,
+        angle: 120,
+        spread: 55,
+        startVelocity: 60,
+        origin: { x: 1, y: 0.5 },
+        colors,
+      })
+
+      rafId = requestAnimationFrame(frame)
+    }
+
+    rafId = requestAnimationFrame(frame)
+
+    return () => {
+      cancelled = true
+      if (rafId) cancelAnimationFrame(rafId)
+    }
+  }, [popup])
+
   return (
-    <div
-      className={`flex ${compact ? "min-h-full" : "min-h-full"} text-white relative overflow-hidden w-full h-full gap-3 md:gap-4`}
-    >
-
-
-      {/* Sidebar */}
-      <div
-        className={`relative z-10 ${compact ? "w-80" : "w-96"} bg-black/40 backdrop-blur-md border-0 ${compact ? "p-4" : "p-6"}`}
-      >
-        <div className="space-y-4">
-          {/* Game Mode Toggle */}
-          <div className="flex bg-black/30 backdrop-blur-sm rounded-4xl p-1 border border-white/10">
-            <button
-              onClick={() => setGameMode("manual")}
-              className={`flex-1 py-3 px-4 rounded-4xl text-sm font-medium transition-all duration-200 ${gameMode === "manual"
-                  ? "bg-red-600/80 text-white backdrop-blur-sm shadow-lg"
-                  : "text-white/60 hover:text-white hover:bg-white/5"
+    <div className="mx-auto max-w-6xl w-full pt-4">
+      <div className="grid grid-cols-1 lg:grid-cols-[300px_minmax(0,1fr)] gap-4">
+        {/* Left control panel */}
+        <div className={`rounded-2xl border border-border bg-background/60 p-3 lg:p-4`}>
+          <div className="space-y-3">
+            {/* Game Mode Toggle */}
+            <div className="grid grid-cols-2 gap-2 rounded-xl border border-border p-1">
+              <button
+                onClick={() => setGameMode("manual")}
+                className={`h-8 rounded-lg text-xs font-semibold ${
+                  gameMode === "manual"
+                    ? "bg-primary text-primary-foreground"
+                    : "text-foreground/70 hover:text-foreground hover:bg-muted transition"
                 }`}
-            >
-              <Zap className="w-4 h-4 inline mr-2" />
-              Manual
-            </button>
-            <button
-              onClick={() => setGameMode("auto")}
-              className={`flex-1 py-3 px-4 rounded-4xl text-sm font-medium transition-all duration-200 ${gameMode === "auto"
-                  ? "bg-red-600/80 text-white backdrop-blur-sm shadow-lg"
-                  : "text-white/60 hover:text-white hover:bg-white/5"
-                }`}
-            >
-              <TrendingUp className="w-4 h-4 inline mr-2" />
-              Auto
-            </button>
-          </div>
-
-          {/* Bet Amount */}
-          <div className="space-y-2">
-            <label className="text-sm text-white/70 font-medium">Bet Amount</label>
-            <div className="flex items-center space-x-2">
-              <div className="flex-1 relative">
-                <Input
-                  value={betAmount}
-                  onChange={(e) => setBetAmount(e.target.value)}
-                  className="bg-black/30 backdrop-blur-sm border-white/20 text-white pr-20 focus:border-red-600/50 focus:ring-red-600/20 h-12 rounded-4xl"
-                  placeholder="0.00"
-                  disabled={isPlaying}
-                />
-                <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center space-x-2">
-                  <button
-                    onClick={() => adjustBetAmount(0.5)}
-                    className="text-[#df500f] hover:text-[#ff6b35] text-sm font-bold px-2 py-1 rounded-md hover:bg-white/10 transition-all"
-                    disabled={isPlaying}
-                  >
-                    ½
-                  </button>
-                  <button
-                    onClick={() => adjustBetAmount(2)}
-                    className="text-[#df500f] hover:text-[#ff6b35] text-sm font-bold px-2 py-1 rounded-md hover:bg-white/10 transition-all"
-                    disabled={isPlaying}
-                  >
-                    2×
-                  </button>
-                </div>
-              </div>
-            </div>
-            <div className="text-xs text-white/50">₹0.00</div>
-          </div>
-
-          {/* Mines Count */}
-          <div className="space-y-2">
-            <label className="text-sm text-white/70 font-medium">Mines</label>
-            <Select value={mineCount} onValueChange={setMineCount} disabled={isPlaying}>
-              <SelectTrigger className="bg-black/30 backdrop-blur-sm border-white/20 text-white h-12 rounded-4xl focus:border-red-600/50">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent className="bg-black/90 backdrop-blur-md border-white/20 rounded-4xl">
-                {Array.from({ length: 24 }, (_, i) => (
-                  <SelectItem
-                    key={i + 1}
-                    value={(i + 1).toString()}
-                    className="text-white hover:bg-[#df500f]/20 focus:bg-[#df500f]/20 rounded-lg"
-                  >
-                    {i + 1}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Gems Count */}
-          <div className="space-y-2">
-            <label className="text-sm text-white/70 font-medium">Gems</label>
-            <Input
-              value={gemCount}
-              readOnly
-              className="bg-black/30 backdrop-blur-sm border-white/20 text-white h-12 rounded-4xl"
-            />
-          </div>
-
-          {/* Bet Button */}
-          <Button
-            onClick={handleBet}
-            className="w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-4 h-14 rounded-4xl border-0 shadow-lg transition-all duration-200 transform hover:scale-[1.02]"
-          >
-            {isPlaying ? "💰 Cash Out" : "🎯 Start Game"}
-          </Button>
-
-          {/* Random Pick Button */}
-          <Button
-            onClick={handleRandomPick}
-            variant="outline"
-            className="w-full border-white/20 text-white hover:text-white hover:bg-white/10 bg-black/30 backdrop-blur-sm h-12 rounded-4xl transition-all duration-200"
-            disabled={!isPlaying || gameOver}
-          >
-            🎲 Random Pick
-          </Button>
-
-          {/* Total Profit */}
-          <div className="space-y-2">
-            <label className="text-sm text-white/70 font-medium">Total Profit ({multiplier.toFixed(2)}×)</label>
-            <div className="flex items-center space-x-3">
-              <Input
-                value={totalProfit}
-                readOnly
-                className="bg-black/30 backdrop-blur-sm border-white/20 text-white flex-1 h-12 rounded-4xl"
-              />
-              <div className="w-10 h-10 bg-red-600 rounded-full flex items-center justify-center shadow-lg">
-                <span className="text-white text-sm font-bold">₹</span>
-              </div>
-            </div>
-            <div className="text-xs text-white/50">₹0.00</div>
-          </div>
-        </div>
-      </div>
-
-      {/* Game Grid */}
-      <div className={`relative z-10 flex-1 p-0 h-full`}>
-        <div className={`grid grid-cols-5 grid-rows-5 gap-3 w-full h-full`}>
-          {grid.map((cell) => (
-            <Card
-              key={cell.id}
-              onClick={() => handleCellClick(cell.id)}
-              className={`
-                w-full h-full flex items-center justify-center cursor-pointer transition-all duration-300 backdrop-blur-sm border-2 rounded-xl hover:scale-105
-                ${cell.isRevealed
-                  ? cell.isMine
-                    ? "bg-red-500/80 hover:bg-red-400/70 border-red-400/50 shadow-lg shadow-red-500/20"
-                    : "bg-gradient-to-br from-[#df500f]/80 to-[#ff6b35]/80 hover:from-[#ff6b35]/70 hover:to-[#df500f]/70 border-[#df500f]/50 shadow-lg shadow-[#df500f]/20"
-                  : "bg-black/30 border-white/20 hover:bg-white/10 hover:border-white/30 shadow-lg"
-                }
-                ${!isPlaying || gameOver ? "cursor-not-allowed opacity-50" : "hover:shadow-xl"}
-              `}
-            >
-              {cell.isRevealed && (
-                <div className="w-8 h-8 flex items-center justify-center">
-                  {cell.isMine ? (
-                    <img src="/Bomb.svg" alt="Bomb" className="w-full h-full object-contain filter drop-shadow-lg" />
-                  ) : (
-                    <img src="/Gems.svg" alt="Gem" className="w-full h-full object-contain filter drop-shadow-lg" />
-                  )}
-                </div>
-              )}
-            </Card>
-          ))}
-        </div>
-      </div>
-
-      {/* Popup Modal */}
-      {popup.isOpen && (
-        <div
-          onClick={closePopup}
-          className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-50 p-4"
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            className="bg-black/60 backdrop-blur-xl border border-white/20 rounded-3xl p-8 w-full max-w-md relative shadow-2xl"
-          >
-            <button
-              type="button"
-              onClick={closePopup}
-              className="absolute top-4 right-4 z-10 pointer-events-auto text-white/60 hover:text-white transition-colors p-2 hover:bg-white/10 rounded-full"
-            >
-              <X size={24} />
-            </button>
-
-            <div className="text-center space-y-4">
-              {popup.type === "mine" ? (
-                <>
-                  <div className="w-32 h-32 mb-6 animate-bounce flex items-center justify-center mx-auto">
-                    <img src="/Bomb.svg" alt="Bomb" className="w-full h-full object-contain" />
-                  </div>
-                  <div className="w-full h-64 bg-gradient-to-br from-red-500/20 to-red-700/20 rounded-2xl flex items-center justify-center overflow-hidden">
-                    <img
-                      src={loseImageSrc || "/placeholder.svg"}
-                      alt="Mine explosion"
-                      className="w-full h-full object-cover rounded-2xl opacity-80"
-                    />
-                  </div>
-                  <h2 className="text-5xl font-bold text-red-400">BOOM! Mine Hit!</h2>
-                  <p className="text-white/70 text-lg">{loseMessage}</p>
-                </>
-              ) : (
-                <>
-                  <div className="w-32 h-32 mb-6 animate-pulse flex items-center justify-center mx-auto">
-                    <img src="/Gems.svg" alt="Gem" className="w-full h-full object-contain" />
-                  </div>
-                  <div className="w-full h-64 bg-red-600/20 rounded-2xl flex items-center justify-center overflow-hidden">
-                    <img
-                      src="/nachoo.gif"
-                      alt="Successful cashout"
-                      className="w-full h-full object-contain rounded-2xl opacity-80"
-                    />
-                  </div>
-                  <h2 className="text-5xl font-bold text-[#df500f]">Congratulations!</h2>
-                  <p className="text-white/70 text-lg">
-                    You cashed out with ₹{totalProfit} profit at {multiplier.toFixed(2)}× multiplier!
-                  </p>
-                </>
-              )}
-
-              <Button
-                onClick={closePopup}
-                className="w-full bg-red-600 hover:bg-red-700 text-white h-12 rounded-4xl font-semibold"
+                aria-pressed={gameMode === "manual"}
               >
-                Continue Playing
+                Manual
+              </button>
+              <button
+                onClick={() => setGameMode("auto")}
+                className={`h-8 rounded-lg text-xs font-semibold ${
+                  gameMode === "auto"
+                    ? "bg-primary text-primary-foreground"
+                    : "text-foreground/70 hover:text-foreground hover:bg-muted transition"
+                }`}
+                aria-pressed={gameMode === "auto"}
+              >
+                Auto
+              </button>
+            </div>
+
+            {/* Bet Amount */}
+            <div>
+              <div className="mb-1 text-[11px] uppercase tracking-wide text-muted-foreground">Bet Amount</div>
+              <div className="flex items-center gap-2">
+                <div className="flex-1 rounded-xl border border-border bg-background/70 px-3 py-2 text-sm">
+                  <Input
+                    value={betAmount}
+                    onChange={(e) => setBetAmount(e.target.value)}
+                    className="w-full bg-transparent outline-none border-0 h-8 p-0"
+                    placeholder="0.00"
+                    disabled={isPlaying}
+                  />
+                </div>
+                <button
+                  onClick={() => adjustBetAmount(0.5)}
+                  className="h-9 rounded-xl border border-border px-2 text-xs text-foreground/80 hover:bg-muted"
+                  disabled={isPlaying}
+                >
+                  ½
+                </button>
+                <button
+                  onClick={() => adjustBetAmount(2)}
+                  className="h-9 rounded-xl border border-border px-2 text-xs text-foreground/80 hover:bg-muted"
+                  disabled={isPlaying}
+                >
+                  2×
+                </button>
+              </div>
+              <div className="mt-1 text-[11px] text-foreground/50">₹0.00</div>
+            </div>
+
+            {/* Mines and Gems */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Mines</div>
+                <Select value={mineCount} onValueChange={setMineCount} disabled={isPlaying}>
+                  <SelectTrigger className="bg-background/70 border border-border h-10 rounded-xl focus:border-primary/50">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-background/90 backdrop-blur-md border border-border rounded-2xl">
+                    {Array.from({ length: 24 }, (_, i) => (
+                      <SelectItem key={i + 1} value={(i + 1).toString()} className="text-foreground hover:bg-muted focus:bg-muted rounded-lg">
+                        {i + 1}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Gems</div>
+                <Input value={gemCount} readOnly className="bg-background/70 border border-border h-10 rounded-xl" />
+              </div>
+            </div>
+
+            {/* Bet / Cash out */}
+            <div className="pt-1">
+              {!isPlaying ? (
+                <Button className="w-full h-10 rounded-xl" onClick={handleBet}>
+                  🎯 Start Game
+                </Button>
+              ) : (
+                <Button variant="secondary" className="w-full h-10 rounded-xl" onClick={handleBet}>
+                  💰 Cash Out
+                </Button>
+              )}
+            </div>
+
+            {/* Random Pick */}
+            <div>
+              <Button onClick={handleRandomPick} variant="outline" className="w-full h-9 rounded-xl" disabled={!isPlaying || gameOver}>
+                🎲 Random Pick
               </Button>
             </div>
+
+            {/* Total Profit */}
+            <div>
+              <div className="mb-1 text-[11px] uppercase tracking-wide text-muted-foreground">Total Profit ({multiplier.toFixed(2)}×)</div>
+              <div className="flex items-center gap-2 rounded-xl border border-border bg-background/70 px-3 py-2 text-sm">
+                <span className="text-foreground/60">₹{Number(totalProfit).toFixed(2)}</span>
+              </div>
+            </div>
+
+            {/* Status */}
+            <div className="rounded-xl border border-border bg-background/40 px-3 py-2 text-xs text-foreground/80">
+              {!isPlaying && !gameOver && "Press Start Game to begin. Reveal safe gems to increase multiplier."}
+              {isPlaying && !gameOver && "Game in progress. Click tiles to reveal. Cash out anytime."}
+              {gameOver && totalProfit !== "0.00" && `You cashed out with ₹${totalProfit} at ${multiplier.toFixed(2)}×.`}
+              {gameOver && totalProfit === "0.00" && "Boom! You hit a mine. Try again."}
+            </div>
           </div>
         </div>
-      )}
+
+        {/* Right board panel */}
+        <div className="relative rounded-2xl border border-border bg-background/60 p-3 lg:p-5">
+          <div className="pointer-events-none absolute inset-0 rounded-2xl ring-1 ring-inset ring-border/40" />
+
+          <div className={`mx-auto max-w-[900px]`}>
+            <div className="rounded-2xl border border-border bg-background/30 p-3 sm:p-4">
+              <div className={`grid grid-cols-5 grid-rows-5 gap-3 w-full`}>
+                {grid.map((cell) => (
+                  <Card
+                    key={cell.id}
+                    onClick={() => handleCellClick(cell.id)}
+                    className={`
+                      w-full aspect-square flex items-center justify-center cursor-pointer transition-all duration-200 border rounded-xl
+                      ${cell.isRevealed
+                        ? cell.isMine
+                          ? "bg-destructive/80 border-destructive/50"
+                          : "bg-primary/80 border-primary/50"
+                        : "border-border bg-background/60 hover:bg-muted"}
+                      ${!isPlaying || gameOver ? "cursor-not-allowed opacity-50" : ""}
+                    `}
+                  >
+                    {cell.isRevealed && (
+                      <div className="w-20 h-20 md:w-24 md:h-24 flex items-center justify-center">
+                        {cell.isMine ? (
+                          <img src="/Bomb.svg" alt="Bomb" className="w-full h-full object-contain filter drop-shadow-lg" />
+                        ) : (
+                          <img src="/Gems.svg" alt="Gem" className="w-full h-full object-contain filter drop-shadow-lg" />
+                        )}
+                      </div>
+                    )}
+                  </Card>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Popup Modal */}
+        {popup.isOpen && (
+          <div onClick={closePopup} className="fixed inset-0 bg-background/80 backdrop-blur-md flex items-center justify-center z-50 p-4">
+            <div onClick={(e) => e.stopPropagation()} className="bg-background/60 backdrop-blur-xl border border-border rounded-3xl p-8 w-full max-w-md relative shadow-2xl">
+              <button type="button" onClick={closePopup} className="absolute top-4 right-4 z-10 pointer-events-auto text-foreground/60 hover:text-foreground transition-colors p-2 hover:bg-muted rounded-full">
+                <X size={24} />
+              </button>
+
+              <div className="text-center space-y-3">
+                {popup.type === "mine" ? (
+                  <>
+                    <div className="w-32 h-32 mb-6 animate-bounce flex items-center justify-center mx-auto">
+                      <img src="/Bomb.svg" alt="Bomb" className="w-full h-full object-contain" />
+                    </div>
+                    <div className="w-full h-64 bg-destructive/20 rounded-2xl flex items-center justify-center overflow-hidden">
+                      <img src={loseImageSrc || "/placeholder.svg"} alt="Mine explosion" className="w-full h-full object-cover rounded-2xl opacity-80" />
+                    </div>
+                    <h2 className="text-3xl font-extrabold tracking-wide uppercase text-destructive">BOOM! Mine Hit!</h2>
+                    <p className="text-foreground/70 text-base">{loseMessage}</p>
+                  </>
+                ) : (
+                  <>
+                    <div className="w-32 h-32 mb-6 animate-pulse flex items-center justify-center mx-auto">
+                      <img src="/Gems.svg" alt="Gem" className="w-full h-full object-contain" />
+                    </div>
+                    <div className="w-full h-64 bg-primary/20 rounded-2xl flex items-center justify-center overflow-hidden">
+                      <img src="/nachoo.gif" alt="Successful cashout" className="w-full h-full object-contain rounded-2xl opacity-80" />
+                    </div>
+                    <h2 className="text-3xl font-extrabold tracking-wide uppercase text-primary">Congratulations!</h2>
+                    <p className="text-foreground/70 text-base">You cashed out with ₹{totalProfit} profit at {multiplier.toFixed(2)}× multiplier!</p>
+                  </>
+                )}
+
+                <Button onClick={closePopup} className="w-full h-12 rounded-2xl font-semibold">
+                  Continue Playing
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   )
 }

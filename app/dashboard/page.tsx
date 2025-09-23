@@ -15,10 +15,11 @@ import NeonGradientCard from "@/components/magicui/neon-gradient-card"
 import GameSlotCard from "@/components/dashboard/ui/GameSlotCard"
 import FeaturePills from "@/components/dashboard/ui/FeaturePills"
 import ChatSidebar from "@/components/dashboard/ui/ChatSidebar"
+import PaajiOnTop from "@/components/games/PaajiOnTop/Paaji"
 
 export default function DashboardPage() {
   const { selectedSection, setSelectedSection, mode } = useUI()
-  const [activeGame, setActiveGame] = useState<"rugs" | "mines" | null>(null)
+  const [activeGame, setActiveGame] = useState<"rugs" | "mines" | "paaji" | null>(null)
   const [balance, setBalance] = useState<number>(1234.56)
   const [activeCategory, setActiveCategory] = useState<string>("All")
 
@@ -97,6 +98,12 @@ export default function DashboardPage() {
                   imageSrc="/cashout.png"
                   onClick={() => { setSelectedSection("games"); setActiveGame("rugs"); }}
                 />
+                <GameSlotCard
+                  title="Paaji On Top"
+                  provider=""
+                  imageSrc="/paaji.png"
+                  onClick={() => { setSelectedSection("games"); setActiveGame("paaji"); }}
+                />
               </div>
             </div>
           </div>
@@ -112,10 +119,15 @@ export default function DashboardPage() {
       return <CrashGame />
     }
 
+    if (selectedSection === "paaji") {
+      return <PaajiOnTop />
+    }
+
     if (selectedSection === "games") {
       if (!activeGame) return <GamePicker onPick={(g) => setActiveGame(g)} />
       if (activeGame === "mines") return <MinesGame />
       if (activeGame === "rugs") return <CrashGame />
+      if (activeGame === "paaji") return <PaajiOnTop />
       return null
     }
     return (
@@ -163,6 +175,7 @@ export default function DashboardPage() {
   const getGameTitle = () => {
     if (activeGame === "mines") return "Mines"
     if (activeGame === "rugs") return "Rugs (Crash)"
+    if (activeGame === "paaji") return "Paaji On Top"
     return null
   }
 
@@ -214,7 +227,7 @@ export default function DashboardPage() {
           <div className="flex-1 flex flex-col m-0 p-0 px-3 sm:px-4 md:px-6 lg:px-8 bg-gray-800">
             {/* Breadcrumb and Back Button */}
             {mode === "casino" && selectedSection === "games" && activeGame && (
-              <div className="mb-0 flex items-center justify-between">
+              <div className="mb-0 flex items-center justify-between py-3">
                 <Button
                   variant="outline"
                   onClick={() => setActiveGame(null)}
