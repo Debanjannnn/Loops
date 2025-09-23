@@ -39,3 +39,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Ignore all node_modules anywhere
+node_modules/
+
+# Or specifically ignore contract/node_modules
+contract/node_modules/
