@@ -1,53 +1,111 @@
 "use client"
-import { Card } from "@/components/ui/card"
-import { Wallet, TrendingUp, Settings } from "lucide-react"
+
 import ConnectWalletButton from "@/components/wallet/ConnectWalletButton"
+import { useEffect, useState } from "react"
+import { useWallet } from "@/contexts/WalletContext"
+import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select"
+import AppSidebar from "@/components/dashboard/ui/SidebarTabs"
 
 interface DashboardHeaderProps {
   title?: string
   balanceInINR: number
 }
 
-export default function DashboardHeader({ title = "Dashboard", balanceInINR }: DashboardHeaderProps) {
-  return (
-    <div className="w-full mb-6">
-      <Card className="bg-black/40 backdrop-blur-md border-white/10 px-8 py-6 rounded-2xl shadow-2xl">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            <div className="w-14 h-14 bg-gradient-to-r from-[#df500f] to-[#ff6b35] rounded-2xl flex items-center justify-center shadow-lg">
-              <span className="text-white text-2xl font-bold">🎮</span>
-            </div>
-            <div>
-              <h1 className="text-white text-3xl font-bold mb-1">{title}</h1>
-              <p className="text-white/70 text-sm">Welcome back to your gaming hub</p>
-            </div>
-          </div>
+export default function DashboardHeader({ title = "Koon" }: DashboardHeaderProps) {
+  const { isConnected, getBalance } = useWallet()
+  const [nearBalance, setNearBalance] = useState<string>("0.0000")
+  const [chain, setChain] = useState<string>("near")
+  const chains = [
+    { value: "near", label: "NEAR", icon: "/near.png" },
+    { value: "arbitrum", label: "Arbitrum", icon: "/arb.png" },
+    { value: "base", label: "Base", icon: "/base.png" },
+    { value: "ethereum", label: "Ethereum", icon: "/eth.png" },
+  ] as const
+  const selectedChain = chains.find((c) => c.value === chain)
 
-          <div className="flex items-center space-x-8">
-            <div className="text-right">
-              <div className="flex items-center space-x-2 mb-2">
-                <Wallet className="w-5 h-5 text-white/60" />
-                <span className="text-white/60 text-sm font-medium">Total Balance</span>
+  useEffect(() => {
+    let mounted = true
+    const load = async () => {
+      if (!isConnected) return
+      try {
+        const b = await getBalance()
+        if (mounted) setNearBalance(b)
+      } catch {
+        if (mounted) setNearBalance("0.0000")
+      }
+    }
+    load()
+    return () => {
+      mounted = false
+    }
+  }, [isConnected, getBalance])
+
+  return (
+    <>
+      <AppSidebar />
+
+      {/* make header transparent, fully rounded, and offset from left to clear the sidebar.
+          Small inset top/right so the curve is visible. */}
+      <header
+        className="fixed top-0 right-0 left-[16rem] z-50 rounded-full border border-border bg-background/70 backdrop-blur"
+        aria-label="Main header"
+      >
+        <div className="relative mx-auto flex h-14 items-center justify-end px-2 md:px-3">
+          {/* Center: Glass balance box */}
+          {isConnected ? (
+            <div className="absolute left-1/2 -translate-x-1/2 hidden sm:flex items-center gap-2 rounded-2xl border px-4 py-2 border-white/15 bg-white/10 backdrop-blur-md shadow-[0_1px_1px_rgba(0,0,0,0.05),inset_0_1px_0_rgba(255,255,255,0.1)]">
+              <div className="h-5 w-5 rounded-full bg-white/20" aria-hidden="true" />
+              <span className="font-semibold text-white">{nearBalance}</span>
+              <span className="text-white/70 text-sm">NEAR</span>
+            </div>
+          ) : null}
+
+          {/* Right: Wallet balance, Avatar, Wallet connect */}
+          <div className="flex items-center gap-2 md:gap-3">
+            {isConnected ? (
+              <div
+                className="flex sm:hidden items-center gap-2 rounded-full border px-3 py-1.5 text-sm leading-none border-white/10 bg-white/5"
+                aria-label="Wallet balance"
+              >
+                <div className="h-5 w-5 rounded-full bg-white/20" aria-hidden="true" />
+                <span className="font-semibold text-white">{nearBalance}</span>
+                <span className="text-white/60">NEAR</span>
               </div>
-              <div className="flex items-center space-x-3">
-                <span className="text-white text-3xl font-bold">
-                  ₹{balanceInINR.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
-                </span>
-                <div className="flex items-center space-x-1 bg-green-500/20 backdrop-blur-sm px-3 py-1.5 rounded-full border border-green-500/30">
-                  <TrendingUp className="w-4 h-4 text-green-400" />
-                  <span className="text-green-400 text-sm font-medium">+2.5%</span>
-                </div>
-              </div>
+            ) : null}
+
+            <div className="flex items-center gap-2">
+              <Select value={chain} onValueChange={setChain}>
+                <SelectTrigger size="sm" className="rounded-full border-white/10 bg-white/5 text-white">
+                  <SelectValue placeholder="Select chain">
+                    {selectedChain ? (
+                      <span className="flex items-center gap-2">
+                        <img
+                          src={selectedChain.icon || "/placeholder.svg"}
+                          alt={selectedChain.label}
+                          className="h-4 w-4 rounded-sm"
+                        />
+                        <span className="hidden sm:inline">{selectedChain.label}</span>
+                      </span>
+                    ) : null}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent className="backdrop-blur-md bg-background/80 border-border text-foreground">
+                  {chains.map((c) => (
+                    <SelectItem key={c.value} value={c.value}>
+                      <span className="flex items-center gap-2">
+                        <img src={c.icon || "/placeholder.svg"} alt={c.label} className="h-4 w-4 rounded-sm" />
+                        <span>{c.label}</span>
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <ConnectWalletButton />
-
-            <button className="w-10 h-10 bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl flex items-center justify-center hover:bg-white/20 transition-all duration-200">
-              <Settings className="w-5 h-5 text-white/70" />
-            </button>
           </div>
         </div>
-      </Card>
-    </div>
+      </header>
+    </>
   )
 }

@@ -161,20 +161,15 @@ export default function MinesGame({ compact = false }: MinesGameProps) {
 
   return (
     <div
-      className={`flex ${compact ? "min-h-full" : "min-h-full"} text-white relative overflow-hidden`}
-      style={{
-        backgroundImage: "url('/images/gradient.png')",
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-        backgroundRepeat: "no-repeat",
-      }}
+      className={`flex ${compact ? "min-h-full" : "min-h-full"} text-white relative overflow-hidden w-full h-full gap-3 md:gap-4`}
     >
-      {/* Dark overlay for better contrast */}
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm"></div>
+
 
       {/* Sidebar */}
-      <div className={`relative z-10 ${compact ? "w-80" : "w-96"} bg-black/40 backdrop-blur-md border-r border-white/10 ${compact ? "p-4" : "p-6"}`}>
-        <div className="space-y-6">
+      <div
+        className={`relative z-10 ${compact ? "w-80" : "w-96"} bg-black/40 backdrop-blur-md border-0 ${compact ? "p-4" : "p-6"}`}
+      >
+        <div className="space-y-4">
           {/* Game Mode Toggle */}
           <div className="flex bg-black/30 backdrop-blur-sm rounded-xl p-1 border border-white/10">
             <button
@@ -202,7 +197,7 @@ export default function MinesGame({ compact = false }: MinesGameProps) {
           </div>
 
           {/* Bet Amount */}
-          <div className="space-y-3">
+          <div className="space-y-2">
             <label className="text-sm text-white/70 font-medium">Bet Amount</label>
             <div className="flex items-center space-x-2">
               <div className="flex-1 relative">
@@ -235,7 +230,7 @@ export default function MinesGame({ compact = false }: MinesGameProps) {
           </div>
 
           {/* Mines Count */}
-          <div className="space-y-3">
+          <div className="space-y-2">
             <label className="text-sm text-white/70 font-medium">Mines</label>
             <Select value={mineCount} onValueChange={setMineCount} disabled={isPlaying}>
               <SelectTrigger className="bg-black/30 backdrop-blur-sm border-white/20 text-white h-12 rounded-xl focus:border-[#df500f]/50">
@@ -256,7 +251,7 @@ export default function MinesGame({ compact = false }: MinesGameProps) {
           </div>
 
           {/* Gems Count */}
-          <div className="space-y-3">
+          <div className="space-y-2">
             <label className="text-sm text-white/70 font-medium">Gems</label>
             <Input
               value={gemCount}
@@ -284,7 +279,7 @@ export default function MinesGame({ compact = false }: MinesGameProps) {
           </Button>
 
           {/* Total Profit */}
-          <div className="space-y-3">
+          <div className="space-y-2">
             <label className="text-sm text-white/70 font-medium">Total Profit ({multiplier.toFixed(2)}×)</label>
             <div className="flex items-center space-x-3">
               <Input
@@ -302,14 +297,14 @@ export default function MinesGame({ compact = false }: MinesGameProps) {
       </div>
 
       {/* Game Grid */}
-      <div className={`relative z-10 flex-1 ${compact ? "p-6" : "p-10"} flex items-center justify-center`}>
-        <div className={`grid grid-cols-5 ${compact ? "gap-4" : "gap-5"} max-w-4xl`}>
+      <div className={`relative z-10 flex-1 p-0 h-full`}>
+        <div className={`grid grid-cols-5 grid-rows-5 gap-3 w-full h-full`}>
           {grid.map((cell) => (
             <Card
               key={cell.id}
               onClick={() => handleCellClick(cell.id)}
               className={`
-                ${compact ? "w-24 h-24" : "w-28 h-28"} flex items-center justify-center cursor-pointer transition-all duration-300 backdrop-blur-sm border-2 rounded-xl transform hover:scale-105
+                w-full h-full flex items-center justify-center cursor-pointer transition-all duration-300 backdrop-blur-sm border-2 rounded-xl hover:scale-105
                 ${
                   cell.isRevealed
                     ? cell.isMine
@@ -328,8 +323,14 @@ export default function MinesGame({ compact = false }: MinesGameProps) {
 
       {/* Popup Modal */}
       {popup.isOpen && (
-        <div onClick={closePopup} className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-50 p-4">
-          <div onClick={(e) => e.stopPropagation()} className="bg-black/60 backdrop-blur-xl border border-white/20 rounded-3xl p-8 w-full max-w-md relative shadow-2xl">
+        <div
+          onClick={closePopup}
+          className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-50 p-4"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="bg-black/60 backdrop-blur-xl border border-white/20 rounded-3xl p-8 w-full max-w-md relative shadow-2xl"
+          >
             <button
               type="button"
               onClick={closePopup}
@@ -338,13 +339,13 @@ export default function MinesGame({ compact = false }: MinesGameProps) {
               <X size={24} />
             </button>
 
-            <div className="text-center space-y-6">
+            <div className="text-center space-y-4">
               {popup.type === "mine" ? (
                 <>
                   <div className="text-8xl mb-6 animate-bounce">💣</div>
                   <div className="w-full h-64 bg-gradient-to-br from-red-500/20 to-red-700/20 rounded-2xl flex items-center justify-center overflow-hidden">
                     <img
-                      src={loseImageSrc}
+                      src={loseImageSrc || "/placeholder.svg"}
                       alt="Mine explosion"
                       className="w-full h-full object-cover rounded-2xl opacity-80"
                     />

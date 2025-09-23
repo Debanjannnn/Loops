@@ -3,8 +3,7 @@
 import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Card } from "@/components/ui/card"
-import { Zap, TrendingUp, Trophy } from "lucide-react"
+import { Zap, TrendingUp } from "lucide-react"
 
 interface Player {
   id: string
@@ -68,6 +67,7 @@ export default function CrashGame({ compact = false }: CrashGameProps) {
   const startTimeRef = useRef<number>(0)
 
   // Mock last winner data
+  /* Removed last winner player UI */
   const [lastWinner] = useState<Player>({
     id: "1",
     name: "Sophie Bennett",
@@ -350,20 +350,10 @@ export default function CrashGame({ compact = false }: CrashGameProps) {
   }
 
   return (
-    <div
-      className="flex h-full text-white relative overflow-hidden min-h-0"
-      style={{
-        backgroundImage: "url('/images/gradient.png')",
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-        backgroundRepeat: "no-repeat",
-      }}
-    >
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm"></div>
-
-      <div className={`relative z-10 ${compact ? "w-64" : "w-80"} bg-gray-900 border-r border-gray-700 ${compact ? "p-4" : "p-6"} h-full overflow-hidden`}>
+    <div className="flex h-full text-white relative overflow-hidden min-h-0">
+      <div className={`relative z-10 ${compact ? "w-64" : "w-80"} bg-black border-0 ${compact ? "p-4" : "p-6"} h-full overflow-hidden`}>
         <div className="space-y-5">
-          <div className="flex bg-gray-800 rounded-xl p-1 border border-gray-600">
+          <div className="flex bg-gray-900 rounded-xl p-1 border border-gray-700">
             <button
               onClick={() => setGameMode("manual")}
               className={`flex-1 py-2.5 px-3 rounded-lg text-sm font-medium transition-all duration-200 ${
@@ -466,50 +456,14 @@ export default function CrashGame({ compact = false }: CrashGameProps) {
             </div>
             <div className="text-xs text-gray-500">₹0.00</div>
           </div>
-
-          <div className="space-y-3">
-            <div className="flex items-center space-x-2">
-              <Trophy className="w-5 h-5 text-gray-300" />
-              <h3 className="text-white font-semibold text-sm">Last Winner</h3>
-            </div>
-            <Card className="bg-gray-800 border-gray-600 p-4">
-              <div className="flex flex-col items-center text-center space-y-3">
-                <div className="w-16 h-16 bg-gradient-to-br from-gray-600 to-gray-700 rounded-full flex items-center justify-center">
-                  <span className="text-white text-xl font-bold">{lastWinner.name.charAt(0).toUpperCase()}</span>
-                </div>
-                <div>
-                  <div className="flex items-center justify-center space-x-2">
-                    <span className="text-white font-bold text-lg">{lastWinner.name}</span>
-                    <div className="w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
-                      <span className="text-white text-xs">✓</span>
-                    </div>
-                  </div>
-                  <p className="text-gray-400 text-sm mt-1">Won {lastWinner.multiplier.toFixed(2)}x with ₹{lastWinner.bet.toFixed(3)}</p>
-                </div>
-                <div className="flex items-center space-x-4 text-gray-400 text-sm">
-                  <div className="flex items-center space-x-1">
-                    <span>��</span>
-                    <span>312</span>
-                  </div>
-                  <div className="flex items-center space-x-1">
-                    <span>📊</span>
-                    <span>48</span>
-                  </div>
-                </div>
-                <Button className="w-full bg-gray-700 border border-gray-600 text-white hover:bg-gray-600 rounded-lg">
-                  Follow +
-                </Button>
-              </div>
-            </Card>
-          </div>
         </div>
       </div>
 
       <div className="relative z-10 flex-1 flex flex-col min-h-0">
-        <div className={`flex-1 relative ${compact ? "p-4" : "p-6"} min-h-0`}>
+        <div className={`flex-1 relative ${compact ? "p-2" : "p-3"} min-h-0`}>
           <canvas
             ref={canvasRef}
-            className="w-full h-full rounded-xl bg-black/20 backdrop-blur-sm border border-white/10"
+            className="w-full h-full rounded-xl bg-black border-0"
             style={{ minHeight: compact ? "280px" : "360px" }}
           />
 

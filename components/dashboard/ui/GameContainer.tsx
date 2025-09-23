@@ -14,12 +14,12 @@ export default function GameContainer({ children, scrollable = true }: GameConta
     <div className="flex-1 h-full">
       <Card
         className={cn(
-          "w-full h-full bg-black/40 backdrop-blur-md border-white/10 rounded-2xl shadow-xl",
+          "w-full h-full bg-transparent rounded-none shadow-none p-0 gap-0 border-0",
           scrollable ? "overflow-y-auto" : "overflow-y-hidden",
-          "overflow-x-hidden",
+          "overflow-x-auto",
         )}
       >
-        <div className="p-6 h-full">{children}</div>
+                 <div className="h-full w-full">{children}</div>
       </Card>
     </div>
   )

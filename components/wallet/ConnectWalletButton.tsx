@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react'
 import { useWallet } from '@/contexts/WalletContext'
 import { Button } from '@/components/ui/button'
 import { Wallet, LogOut, Copy, Check } from 'lucide-react'
+import { ShimmerButton } from '@/components/magicui/shimmer-button'
 
 interface ConnectWalletButtonProps {
   className?: string
@@ -97,12 +98,9 @@ export default function ConnectWalletButton({ className }: ConnectWalletButtonPr
   }
 
   return (
-    <Button
-      onClick={handleConnect}
-      className={`bg-gradient-to-r from-[#df500f] to-[#ff6b35] hover:from-[#c43e0a] hover:to-[#e55a2b] text-white border-0 ${className}`}
-    >
-      <Wallet className="w-4 h-4 mr-2" />
-      Connect Wallet
-    </Button>
+    <ShimmerButton onClick={handleConnect} className={className}>
+      <Wallet className="w-4 h-4" />
+      <span>Connect Wallet</span>
+    </ShimmerButton>
   )
 }
