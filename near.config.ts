@@ -20,7 +20,7 @@ export const initWalletSelector = async () => {
       setupSender(),
       setupHereWallet(),
       setupMeteorWallet(),
-      setupNightl y(),
+      setupNightly(),
     ],
   });
 
