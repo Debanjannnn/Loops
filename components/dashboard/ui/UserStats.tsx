@@ -91,7 +91,7 @@ const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8']
 
 export default function UserStats() {
   const { selector, accountId, isConnected, getBalance } = useWallet()
-  const { getUserStats } = useContract()
+  const { getUserStats, withdraw: contractWithdraw } = useContract()
   console.log("accountId:", accountId)
   const [contractService, setContractService] = useState<ContractService | null>(null)
   const [userStats, setUserStats] = useState<UserStats | null>(null)
@@ -327,7 +327,7 @@ export default function UserStats() {
   }
 
   const handleWithdraw = async () => {
-    if (!contractService || !userStats) {
+    if (!isConnected || !userStats) {
       setErrorMessage("Please connect your wallet first")
       return
     }
@@ -343,13 +343,16 @@ export default function UserStats() {
     
     try {
       console.log("💰 Starting withdrawal process...")
-      const hash = await contractService.withdraw()
+      console.log(`💸 Withdrawing ${formatCurrency(withdrawableAmount.toString())}`)
+      
+      // Use the ContractProvider withdraw function
+      const hash = await contractWithdraw()
       console.log("✅ Withdrawal transaction successful:", hash)
       
-      setSuccessMessage(`Withdrawal successful! ${formatCurrency(withdrawableAmount.toString())} has been sent to your wallet.`)
+      setSuccessMessage(`🎉 Withdrawal successful! ${formatCurrency(withdrawableAmount.toString())} has been sent to your wallet.`)
       setTransactionHash(hash)
       
-      // Refresh stats after successful withdrawal - similar to betting interface
+      // Refresh stats after successful withdrawal
       setTimeout(async () => {
         console.log("🔄 Refreshing stats after withdrawal...")
         await fetchUserStats()
@@ -363,23 +366,24 @@ export default function UserStats() {
             console.error("❌ Error refreshing wallet balance:", error)
           }
         }
-      }, 3000) // Wait a bit longer for the transaction to be processed
+      }, 3000) // Wait for the transaction to be processed
+      
     } catch (error: any) {
       console.error("❌ Error withdrawing:", error)
       let errorMsg = "Error withdrawing winnings. Please try again."
       
-      // Handle specific error cases like in the betting interface
-      // @ts-ignore - best effort error message
+      // Handle specific error cases
       if (error.message?.includes("Nothing to withdraw")) {
         errorMsg = "No winnings available to withdraw"
-      } else if (error.message?.includes("User closed the window")) {
+      } else if (error.message?.includes("User closed the window") || error.message?.includes("cancelled")) {
         errorMsg = "Transaction cancelled. Please try again when ready."
       } else if (error.message?.includes("insufficient balance")) {
         errorMsg = "Insufficient contract balance for withdrawal"
       } else if (error.message?.includes("Contract method is not found")) {
         errorMsg = "Contract not properly deployed. Please contact support."
-      } else if (// @ts-ignore
-        error.message) {
+      } else if (error.message?.includes("No account connected")) {
+        errorMsg = "Please connect your wallet first"
+      } else if (error.message) {
         errorMsg = error.message
       }
       
@@ -437,6 +441,37 @@ export default function UserStats() {
           </div>
         </div>
       </div>
+
+      {/* Quick Withdraw Section */}
+      {userStats && parseFloat(userStats.withdrawableBalance) > 0 && (
+        <div className="bg-gradient-to-r from-yellow-600/20 to-orange-600/20 border border-yellow-500/30 rounded-2xl p-6">
+          <div className="flex items-center justify-between">
+            <div className="flex-1">
+              <h3 className="text-yellow-400 text-lg font-bold mb-2">🎉 You have winnings to withdraw!</h3>
+              <p className="text-yellow-300 text-sm mb-3">
+                You have <span className="font-bold text-yellow-200">{formatCurrency(userStats.withdrawableBalance)}</span> ready to withdraw
+              </p>
+              <Button 
+                onClick={handleWithdraw}
+                disabled={isLoading}
+                className="bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white font-bold py-3 px-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50"
+              >
+                {isLoading ? (
+                  <>
+                    <RefreshCw className="w-5 h-5 mr-2 animate-spin" />
+                    Processing Withdrawal...
+                  </>
+                ) : (
+                  <>
+                    💰 Withdraw {formatCurrency(userStats.withdrawableBalance)}
+                  </>
+                )}
+              </Button>
+            </div>
+            <div className="text-6xl ml-4">🎁</div>
+          </div>
+        </div>
+      )}
 
       {/* Error Message */}
       {errorMessage && (
@@ -677,34 +712,47 @@ export default function UserStats() {
 
       {/* Additional Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="bg-background/60 border-border p-6">
+        <Card className={`${userStats && parseFloat(userStats.withdrawableBalance) > 0 ? 'bg-gradient-to-br from-yellow-600/20 to-orange-600/20 border-yellow-500/30' : 'bg-background/60 border-border'} p-6`}>
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-muted-foreground">Withdrawable Balance</p>
-              <p className="text-2xl font-bold text-white">{formatCurrency(userStats?.withdrawableBalance || "0")}</p>
+              <p className={`text-2xl font-bold ${userStats && parseFloat(userStats.withdrawableBalance) > 0 ? 'text-yellow-400' : 'text-white'}`}>
+                {formatCurrency(userStats?.withdrawableBalance || "0")}
+              </p>
               {userStats && parseFloat(userStats.withdrawableBalance) > 0 ? (
-                <div className="mt-2">
+                <div className="mt-3">
                   <Button 
                     onClick={handleWithdraw}
                     disabled={isLoading}
-                    className="h-8 text-xs bg-yellow-600 hover:bg-yellow-700 disabled:opacity-50"
+                    className="h-10 w-full text-sm bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 disabled:opacity-50 font-semibold shadow-lg hover:shadow-xl transition-all duration-200"
                   >
                     {isLoading ? (
                       <>
-                        <RefreshCw className="w-3 h-3 mr-1 animate-spin" />
+                        <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
                         Withdrawing...
                       </>
                     ) : (
-                      "💰 Withdraw"
+                      <>
+                        💰 Withdraw {formatCurrency(userStats.withdrawableBalance)}
+                      </>
                     )}
                   </Button>
-                  <p className="text-xs text-yellow-400/70 mt-1">Click to withdraw to your wallet</p>
+                  <p className="text-xs text-yellow-400/80 mt-2 text-center">
+                    ✨ Withdraw your winnings instantly to your wallet
+                  </p>
                 </div>
               ) : (
-                <p className="text-xs text-muted-foreground mt-1">No winnings to withdraw</p>
+                <div className="mt-3">
+                  <div className="h-10 w-full bg-gray-700/50 rounded-lg flex items-center justify-center">
+                    <p className="text-xs text-gray-400">No winnings to withdraw</p>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-2 text-center">
+                    Play games to earn withdrawable winnings
+                  </p>
+                </div>
               )}
             </div>
-            <Trophy className="h-8 w-8 text-yellow-500" />
+            <Trophy className={`h-8 w-8 ${userStats && parseFloat(userStats.withdrawableBalance) > 0 ? 'text-yellow-400' : 'text-yellow-500'}`} />
           </div>
         </Card>
 

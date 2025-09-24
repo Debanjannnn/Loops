@@ -10,6 +10,8 @@ import useSound from "use-sound"
 import confetti from "canvas-confetti"
 import { ContractService } from "@/lib/contractService"
 import { useWallet } from "@/contexts/WalletContext"
+import { useContract } from "@/contexts/ContractProvider"
+import { gameOutcomeService } from "@/lib/gameOutcomeService"
 
 interface MineCell {
   id: number
@@ -31,6 +33,7 @@ interface MinesGameProps {
 
 export default function MinesGame({ compact = false, onBack }: MinesGameProps) {
   const { selector, accountId, isConnected, getBalance } = useWallet()
+  const { getUserStats } = useContract()
   const [betAmount, setBetAmount] = useState("0.00")
   const [mineCount, setMineCount] = useState("3")
   const [gemCount, setGemCount] = useState("22")
@@ -70,6 +73,36 @@ export default function MinesGame({ compact = false, onBack }: MinesGameProps) {
   const [BombSound] = useSound("/sounds/Bomb.mp3");
   const [CashoutSound] = useSound("/sounds/Cashout.mp3");
   const [GemsSound] = useSound("/sounds/Gems.mp3");
+
+  // Resolve game directly
+  const resolveGame = async (didWin: boolean, finalMultiplier: number) => {
+    if (!gameId || !accountId) {
+      console.log("❌ Cannot resolve game - missing gameId or accountId");
+      return;
+    }
+
+    try {
+      console.log(`🚀 Resolving game: ${gameId}, Win: ${didWin}, Multiplier: ${finalMultiplier}`);
+      
+      await gameOutcomeService.resolveGame({
+        gameId,
+        didWin,
+        multiplier: finalMultiplier,
+        timestamp: Date.now(),
+        gameType: "mines",
+        player: accountId
+      });
+      
+      if (didWin) {
+        setSuccessMessage(`🎉 Game won! Resolved at ${finalMultiplier.toFixed(2)}× multiplier.`);
+      } else {
+        setSuccessMessage(`Game resolved successfully.`);
+      }
+    } catch (error: any) {
+      console.error("❌ Error resolving game:", error);
+      setErrorMessage(`Failed to resolve game: ${error.message}`);
+    }
+  };
 
   // Per-reveal multiplier factors based on number of mines
   const perRevealMultiplierByMines: Record<number, number> = {
@@ -200,9 +233,9 @@ export default function MinesGame({ compact = false, onBack }: MinesGameProps) {
       setIsPlaying(false)
       setTotalProfit("0.00")
       
-      // Game lost - the resolver script will handle resolution
+      // Game lost - resolve directly
       console.log("💥 User hit mine - game lost")
-      setErrorMessage("Game lost! The resolver will process this automatically.")
+      resolveGame(false, 1.0)
     } else {
       // Update multiplier based on per-reveal factor tied to mine count
       const mines = Number.parseInt(mineCount)
@@ -226,14 +259,16 @@ export default function MinesGame({ compact = false, onBack }: MinesGameProps) {
     }
 
     if (isPlaying) {
-      // User is cashing out - the resolver script will handle resolution
+      // User is cashing out - automatically resolve
       console.log("💰 User cashing out at multiplier:", multiplier)
       
       CashoutSound()
-      setSuccessMessage(`Cashed out at ${multiplier.toFixed(2)}×! Game will be resolved automatically by the resolver.`)
       setPopup({ isOpen: true, type: "gem", cellId: null })
       setIsPlaying(false)
       setGameOver(true)
+      
+      // Resolve game directly
+      resolveGame(true, multiplier)
     } else {
       // Start new game - validate bet amount first
       const bet = Number.parseFloat(betAmount)

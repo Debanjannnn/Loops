@@ -9,6 +9,8 @@ import { X } from "lucide-react"
 import useSound from "use-sound"
 import { ContractService } from "@/lib/contractService"
 import { useWallet } from "@/contexts/WalletContext"
+import { useContract } from "@/contexts/ContractProvider"
+import { gameOutcomeService } from "@/lib/gameOutcomeService"
 
 type GameStatus = "idle" | "in-progress" | "won" | "lost" | "cashed-out"
 
@@ -33,6 +35,7 @@ type PopupState = {
 
 export function PaajiOnTop({ rows = 8, cols = 4 }: PaajiOnTopProps) {
   const { selector, accountId, isConnected, getBalance } = useWallet()
+  const { getUserStats } = useContract()
   const [status, setStatus] = React.useState<GameStatus>("idle")
   const [currentRow, setCurrentRow] = React.useState(0)
   const [config, setConfig] = React.useState<RowConfig[]>([])
@@ -53,6 +56,36 @@ export function PaajiOnTop({ rows = 8, cols = 4 }: PaajiOnTopProps) {
   const [BetSound] = useSound("/sounds/Bet.mp3");
   const[PaajiLoseSound] = useSound("/sounds/PaajiLose.mp3");
   const[PaajiCashoutSound] = useSound("/sounds/PaajiCashOut.mp3");
+
+  // Resolve game directly
+  const resolveGame = async (didWin: boolean, finalMultiplier: number) => {
+    if (!gameId || !accountId) {
+      console.log("❌ Cannot resolve game - missing gameId or accountId");
+      return;
+    }
+
+    try {
+      console.log(`🚀 Resolving game: ${gameId}, Win: ${didWin}, Multiplier: ${finalMultiplier}`);
+      
+      await gameOutcomeService.resolveGame({
+        gameId,
+        didWin,
+        multiplier: finalMultiplier,
+        timestamp: Date.now(),
+        gameType: "paaji",
+        player: accountId
+      });
+      
+      if (didWin) {
+        setSuccessMessage(`🎉 Game won! Resolved at ${finalMultiplier.toFixed(2)}× multiplier.`);
+      } else {
+        setSuccessMessage(`Game resolved successfully.`);
+      }
+    } catch (error: any) {
+      console.error("❌ Error resolving game:", error);
+      setErrorMessage(`Failed to resolve game: ${error.message}`);
+    }
+  };
 
   const multiplier = React.useMemo(() => {
     const base = 1
@@ -190,19 +223,14 @@ export function PaajiOnTop({ rows = 8, cols = 4 }: PaajiOnTopProps) {
 
   const cashOut = async () => {
     if (status === "in-progress") {
-      // User is cashing out - call resolve_game with the multiplier
-      try {
-        console.log("💰 User cashing out with multiplier:", multiplier)
-        
-        setStatus("cashed-out")
-        PaajiCashoutSound()
-        setSuccessMessage(`Cashed out at ${multiplier}×! The resolver will process your winnings automatically.`)
-      } catch (error: any) {
-        console.error("❌ Error in cashout:", error)
-        setStatus("cashed-out")
-        PaajiCashoutSound()
-        setSuccessMessage(`Cashed out at ${multiplier}×! The resolver will process your winnings automatically.`)
-      }
+      // User is cashing out - automatically resolve
+      console.log("💰 User cashing out with multiplier:", multiplier)
+      
+      setStatus("cashed-out")
+      PaajiCashoutSound()
+      
+      // Resolve game directly
+      resolveGame(true, parseFloat(multiplier))
     }
   }
 
@@ -227,9 +255,9 @@ export function PaajiOnTop({ rows = 8, cols = 4 }: PaajiOnTopProps) {
         setStatus("won")
         PaajiCashoutSound()
         
-        // User reached the top - the resolver script will handle resolution
+        // User reached the top - resolve directly
         console.log("🏆 User reached the top with multiplier:", multiplier)
-        setSuccessMessage(`You reached the top at ${multiplier}×! The resolver will process your winnings automatically.`)
+        resolveGame(true, parseFloat(multiplier))
       } else {
         setCurrentRow(nextRow)
       }
@@ -237,9 +265,9 @@ export function PaajiOnTop({ rows = 8, cols = 4 }: PaajiOnTopProps) {
       setStatus("lost")
       PaajiLoseSound()
       
-      // Game lost - the resolver script will handle resolution
+      // Game lost - resolve directly
       console.log("💥 User hit wrong tile - game lost")
-      setErrorMessage("Game lost! The resolver will process this automatically.")
+      resolveGame(false, 1.0)
     }
   }
 

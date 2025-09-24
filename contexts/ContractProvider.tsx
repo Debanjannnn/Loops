@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext } from "react";
 import { useWalletSelector } from "@near-wallet-selector/react-hook";
+import { useWallet } from "./WalletContext";
 
 const CONTRACT_ID = "game-v0.testnet";
 
@@ -13,7 +14,8 @@ type ContractContextType = {
 const ContractContext = createContext<ContractContextType | undefined>(undefined);
 
 export const ContractProvider = ({ children }: { children: React.ReactNode }) => {
-  const { viewFunction, signAndSendTransaction, accounts } = useWalletSelector();
+  const { viewFunction } = useWalletSelector();
+  const { selector, accountId } = useWallet();
 
   const getUserStats = async (accountId: string) => {
     try {
@@ -34,8 +36,19 @@ export const ContractProvider = ({ children }: { children: React.ReactNode }) =>
     try {
       console.log("💰 Starting withdrawal process...");
       
-      const result = await signAndSendTransaction({
-        signerId: CONTRACT_ID, // This will be the connected account
+      if (!selector || !accountId) {
+        throw new Error("No account connected");
+      }
+      
+      const wallet = await selector.wallet();
+      const account = selector.store.getState().accounts[0];
+      
+      if (!account) {
+        throw new Error("No account found in wallet");
+      }
+      
+      const result = await wallet.signAndSendTransaction({
+        signerId: account.accountId,
         receiverId: CONTRACT_ID,
         actions: [
           {
