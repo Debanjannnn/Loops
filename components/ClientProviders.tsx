@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { WalletSelectorProvider } from "@near-wallet-selector/react-hook";
 import { setupMeteorWallet } from "@near-wallet-selector/meteor-wallet";
 import { setupHereWallet } from "@near-wallet-selector/here-wallet";
@@ -11,6 +12,7 @@ import { NetworkId } from "@near-wallet-selector/core";
 import { WalletProvider } from "@/contexts/WalletContext";
 import { UIProvider } from "@/contexts/UIContext";
 import { ContractProvider } from "@/contexts/ContractProvider";
+import { initializeExchangeRates } from "@/lib/currencyUtils";
 
 const walletSelectorConfig = {
   network: "testnet" as NetworkId,
@@ -29,6 +31,11 @@ export default function ClientProviders({
 }: {
   children: React.ReactNode;
 }) {
+  // Initialize exchange rates on app startup
+  useEffect(() => {
+    initializeExchangeRates();
+  }, []);
+
   return (
     <WalletSelectorProvider config={walletSelectorConfig}>
       <WalletProvider>

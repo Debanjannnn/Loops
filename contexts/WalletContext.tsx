@@ -27,9 +27,11 @@ interface WalletContextType {
   accountId: string | null;
   isConnected: boolean;
   isLoading: boolean;
+  balance: string;
   connect: () => void;
   disconnect: () => Promise<void>;
   getBalance: () => Promise<string>;
+  refreshBalance: () => Promise<void>;
 }
 
 const WalletContext = createContext<WalletContextType | undefined>(undefined);
@@ -43,26 +45,70 @@ export function WalletProvider({ children }: WalletProviderProps) {
   const [modal, setModal] = useState<any>(null);
   const [accountId, setAccountId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [balance, setBalance] = useState<string>("0.00");
 
   const getBalance = useCallback(async (): Promise<string> => {
-    if (!selector || !accountId) return "0";
+    if (!selector || !accountId) {
+      console.log("🔍 getBalance: No selector or accountId", { selector: !!selector, accountId });
+      return "0.00";
+    }
 
     try {
+      console.log("🔍 Fetching balance for account:", accountId);
       const { network } = selector.options;
-      const provider = new providers.JsonRpcProvider({ 
-        url: 'https://near-testnet.api.pagoda.co/rpc/v1' 
-      });
-      const res: any = await provider.query({
-        request_type: "view_account",
-        account_id: accountId,
-        finality: "final",
-      });
-      return utils.format.formatNearAmount(res.amount, 4); // returns in NEAR
+      
+      // Try multiple RPC endpoints for reliability
+      const rpcEndpoints = [
+        'https://rpc.testnet.near.org',
+        'https://testnet-rpc.near.org',
+        'https://near-testnet.api.pagoda.co/rpc/v1'
+      ];
+      
+      let lastError;
+      for (const endpoint of rpcEndpoints) {
+        try {
+          console.log("🔍 Trying RPC endpoint:", endpoint);
+          const provider = new providers.JsonRpcProvider({ url: endpoint });
+          const res: any = await provider.query({
+            request_type: "view_account",
+            account_id: accountId,
+            finality: "final",
+          });
+          console.log("🔍 Raw balance response:", res);
+          const formattedBalance = utils.format.formatNearAmount(res.amount, 2);
+          console.log("🔍 Formatted balance:", formattedBalance);
+          return formattedBalance;
+        } catch (error) {
+          console.warn(`⚠️ RPC endpoint ${endpoint} failed:`, error);
+          lastError = error;
+          continue;
+        }
+      }
+      
+      // If all endpoints failed, throw the last error
+      throw lastError;
     } catch (err) {
-      console.error("Failed to fetch balance:", err);
-      return "0";
+      console.error("❌ Failed to fetch balance from all endpoints:", err);
+      return "0.00";
     }
   }, [selector, accountId]);
+
+  const refreshBalance = useCallback(async (): Promise<void> => {
+    if (!accountId) {
+      console.log("🔍 refreshBalance: No accountId, setting balance to 0.00");
+      setBalance("0.00");
+      return;
+    }
+    
+    try {
+      console.log("🔍 refreshBalance: Fetching new balance...");
+      const newBalance = await getBalance();
+      console.log("🔍 refreshBalance: Setting balance to:", newBalance);
+      setBalance(newBalance);
+    } catch (err) {
+      console.error("❌ Failed to refresh balance:", err);
+    }
+  }, [accountId, getBalance]);
 
   useEffect(() => {
     const init = async () => {
@@ -108,6 +154,27 @@ export function WalletProvider({ children }: WalletProviderProps) {
     init();
   }, []);
 
+  // Auto-refresh balance when account changes
+  useEffect(() => {
+    console.log("🔍 Balance effect triggered, accountId:", accountId);
+    if (accountId) {
+      console.log("🔍 Account connected, refreshing balance...");
+      refreshBalance();
+      // Set up periodic balance refresh every 10 seconds
+      const interval = setInterval(() => {
+        console.log("🔍 Periodic balance refresh...");
+        refreshBalance();
+      }, 10000);
+      return () => {
+        console.log("🔍 Clearing balance refresh interval");
+        clearInterval(interval);
+      };
+    } else {
+      console.log("🔍 No account, setting balance to 0.00");
+      setBalance("0.00");
+    }
+  }, [accountId, refreshBalance]);
+
   const connect = () => {
     if (modal) modal.show();
   };
@@ -129,9 +196,11 @@ export function WalletProvider({ children }: WalletProviderProps) {
     accountId,
     isConnected: !!accountId,
     isLoading,
+    balance,
     connect,
     disconnect,
     getBalance,
+    refreshBalance,
   };
 
   return <WalletContext.Provider value={value}>{children}</WalletContext.Provider>;

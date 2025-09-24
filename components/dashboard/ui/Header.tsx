@@ -9,12 +9,11 @@ import { ShimmerButton } from "@/components/magicui/shimmer-button"
 
 interface DashboardHeaderProps {
   title?: string
-  balanceInINR: number
+  balanceInNEAR: number
 }
 
-export default function DashboardHeader({ title = "Koon" }: DashboardHeaderProps) {
-  const { isConnected, getBalance } = useWallet()
-  const [nearBalance, setNearBalance] = useState<string>("0.0000")
+export default function DashboardHeader({ title = "Koon", balanceInNEAR }: DashboardHeaderProps) {
+  const { isConnected, balance } = useWallet()
   const [chain, setChain] = useState<string>("near")
   const chains = [
     { value: "near", label: "NEAR", icon: "/near.png" },
@@ -23,23 +22,6 @@ export default function DashboardHeader({ title = "Koon" }: DashboardHeaderProps
     { value: "ethereum", label: "Ethereum", icon: "/eth.png" },
   ] as const
   const selectedChain = chains.find((c) => c.value === chain)
-
-  useEffect(() => {
-    let mounted = true
-    const load = async () => {
-      if (!isConnected) return
-      try {
-        const b = await getBalance()
-        if (mounted) setNearBalance(b)
-      } catch {
-        if (mounted) setNearBalance("0.0000")
-      }
-    }
-    load()
-    return () => {
-      mounted = false
-    }
-  }, [isConnected, getBalance])
 
   return (
     <>

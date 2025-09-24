@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Zap, TrendingUp } from "lucide-react"
+import { formatNEAR, formatGameCurrency, getConversionText } from "@/lib/currencyUtils"
 
 interface Player {
   id: string
@@ -404,7 +405,7 @@ export default function CrashGame({ compact = false }: CrashGameProps) {
                 </div>
               </div>
             </div>
-            <div className="text-xs text-foreground/50">₹0.00</div>
+            <div className="text-xs text-foreground/50">0.00 NEAR</div>
           </div>
 
           <div className="space-y-3">
@@ -448,10 +449,10 @@ export default function CrashGame({ compact = false }: CrashGameProps) {
                 className="bg-background/70 border border-border text-foreground flex-1 h-9 rounded-2xl"
               />
               <div className="w-8 h-8 rounded-full flex items-center justify-center border border-border bg-background/60">
-                <span className="text-foreground text-[10px] font-bold">₹</span>
+                <span className="text-foreground text-[10px] font-bold">NEAR</span>
               </div>
             </div>
-            <div className="text-xs text-foreground/50">₹0.00</div>
+            <div className="text-xs text-foreground/50">0.00 NEAR</div>
           </div>
         </div>
       </div>

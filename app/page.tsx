@@ -11,6 +11,7 @@ import Coinflip from "@/components/games/Coinflip/Coinflip"
 import { Button } from "@/components/ui/button"
 import { ArrowLeft, Home, ChevronRight } from "lucide-react"
 import { useUI } from "@/contexts/UIContext"
+import { useWallet } from "@/contexts/WalletContext"
 import Image from "next/image"
 import GameSlotCard from "@/components/dashboard/ui/GameSlotCard"
 import FeaturePills from "@/components/dashboard/ui/FeaturePills"
@@ -23,9 +24,9 @@ import LoadingScreen from "@/components/ui/LoadingScreen"
 
 export default function DashboardPage() {
   const { selectedSection, setSelectedSection, mode } = useUI()
+  const { balance } = useWallet()
   const router = useRouter()
   const [activeGame, setActiveGame] = useState<"rugs" | "mines" | "paaji" | "coinflip" | null>(null)
-  const [balance, setBalance] = useState<number>(1234.56)
   const [activeCategory, setActiveCategory] = useState<string>("All")
   // const [isLoading, setIsLoading] = useState<boolean>(true)
 
@@ -206,7 +207,7 @@ export default function DashboardPage() {
       <ChatSidebar />
 
       <div className="relative z-10 w-full mx-auto pt-14">
-        <DashboardHeader title="Koon" balanceInINR={balance} />
+        <DashboardHeader title="Koon" balanceInNEAR={parseFloat(balance)} />
 
         <div className="flex gap-0 h-[calc(100vh-56px)] overflow-hidden">
           <div className="w-64 shrink-0 m-0 p-0">

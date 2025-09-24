@@ -12,6 +12,7 @@ import { ContractService } from "@/lib/contractService"
 import { useWallet } from "@/contexts/WalletContext"
 import { useContract } from "@/contexts/ContractProvider"
 import { gameOutcomeService } from "@/lib/gameOutcomeService"
+import { formatNEAR, formatGameCurrency, getConversionText } from "@/lib/currencyUtils"
 
 interface MineCell {
   id: number
@@ -34,7 +35,7 @@ interface MinesGameProps {
 export default function MinesGame({ compact = false, onBack }: MinesGameProps) {
   const { selector, accountId, isConnected, getBalance } = useWallet()
   const { getUserStats } = useContract()
-  const [betAmount, setBetAmount] = useState("0.00")
+  const [betAmount, setBetAmount] = useState("0.10")
   const [mineCount, setMineCount] = useState("3")
   const [gemCount, setGemCount] = useState("22")
   const [totalProfit, setTotalProfit] = useState("0.00")
@@ -472,9 +473,12 @@ export default function MinesGame({ compact = false, onBack }: MinesGameProps) {
                     value={betAmount}
                     onChange={(e) => setBetAmount(e.target.value)}
                     className="w-full bg-transparent outline-none border-0 h-8 p-0"
-                    placeholder="0.00"
+                    placeholder="0.10"
                     disabled={isPlaying}
                   />
+                </div>
+                <div className="text-xs text-muted-foreground px-2">
+                  NEAR
                 </div>
                 <button
                   onClick={() => adjustBetAmount(0.5)}
@@ -545,7 +549,7 @@ export default function MinesGame({ compact = false, onBack }: MinesGameProps) {
             <div>
               <div className="mb-1 text-[11px] uppercase tracking-wide text-muted-foreground">Total Profit ({multiplier.toFixed(2)}×)</div>
               <div className="flex items-center gap-2 rounded-xl border border-border bg-background/70 px-3 py-2 text-sm">
-                <span className="text-foreground/60">₹{Number(totalProfit).toFixed(2)}</span>
+                <span className="text-foreground/60">{formatGameCurrency(totalProfit)}</span>
               </div>
             </div>
 
@@ -553,7 +557,7 @@ export default function MinesGame({ compact = false, onBack }: MinesGameProps) {
             <div className="rounded-xl border border-border bg-background/30 px-3 py-2 text-xs text-foreground/70">
               {!isPlaying && !gameOver && "Press Start Game to begin. Reveal safe gems to increase multiplier."}
               {isPlaying && !gameOver && "Game in progress. Click tiles to reveal. Cash out anytime."}
-              {gameOver && totalProfit !== "0.00" && `You cashed out with ₹${totalProfit} at ${multiplier.toFixed(2)}×.`}
+              {gameOver && totalProfit !== "0.00" && `You cashed out with ${formatGameCurrency(totalProfit)} at ${multiplier.toFixed(2)}×.`}
               {gameOver && totalProfit === "0.00" && "Boom! You hit a mine. Try again."}
             </div>
           </div>
@@ -625,7 +629,7 @@ export default function MinesGame({ compact = false, onBack }: MinesGameProps) {
                       <img src="/nachoo.gif" alt="Successful cashout" className="w-full h-full object-contain rounded-2xl opacity-80" />
                     </div>
                     <h2 className="text-3xl font-bold tracking-wide uppercase text-primary/90">Congratulations!</h2>
-                    <p className="text-foreground/70 text-base">You cashed out with ₹{totalProfit} profit at {multiplier.toFixed(2)}× multiplier!</p>
+                    <p className="text-foreground/70 text-base">You cashed out with {formatGameCurrency(totalProfit)} profit at {multiplier.toFixed(2)}× multiplier!</p>
                   </>
                 )}
 

@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { useWallet } from '@/contexts/WalletContext'
 import { Button } from '@/components/ui/button'
-import { Wallet, LogOut, Copy, Check } from 'lucide-react'
+import { Wallet, LogOut, Copy, Check, RefreshCw } from 'lucide-react'
 import { ShimmerButton } from '@/components/magicui/shimmer-button'
 
 interface ConnectWalletButtonProps {
@@ -11,9 +11,9 @@ interface ConnectWalletButtonProps {
 }
 
 export default function ConnectWalletButton({ className }: ConnectWalletButtonProps) {
-  const { accountId, isConnected, isLoading, connect, disconnect, getBalance } = useWallet()
-  const [balance, setBalance] = useState<string>('0')
+  const { accountId, isConnected, isLoading, connect, disconnect, balance, refreshBalance } = useWallet()
   const [copied, setCopied] = useState(false)
+  const [isRefreshing, setIsRefreshing] = useState(false)
 
   const handleConnect = async () => {
     if (isConnected) {
@@ -31,29 +31,16 @@ export default function ConnectWalletButton({ className }: ConnectWalletButtonPr
     }
   }
 
-  const loadBalance = async () => {
-    if (isConnected) {
-      try {
-        const walletBalance = await getBalance()
-        setBalance(walletBalance)
-      } catch (error) {
-        console.error('Failed to load balance:', error)
-        setBalance('0.0000')
-      }
+  const handleRefreshBalance = async () => {
+    setIsRefreshing(true)
+    try {
+      await refreshBalance()
+    } catch (error) {
+      console.error('Failed to refresh balance:', error)
+    } finally {
+      setIsRefreshing(false)
     }
   }
-
-  // Load balance when connected
-  useEffect(() => {
-    if (isConnected) {
-      // Add a small delay to ensure wallet is fully connected
-      const timer = setTimeout(() => {
-        loadBalance()
-      }, 1000)
-      
-      return () => clearTimeout(timer)
-    }
-  }, [isConnected])
 
   if (isLoading) {
     return (
@@ -65,12 +52,21 @@ export default function ConnectWalletButton({ className }: ConnectWalletButtonPr
   }
 
   if (isConnected && accountId) {
+    console.log("🔍 ConnectWalletButton: Displaying balance:", balance, "for account:", accountId);
     return (
       <div className={`flex items-center space-x-3 ${className}`}>
         <div className="flex flex-col items-end">
           <div className="flex items-center space-x-2">
             <span className="text-white/70 text-sm">Balance:</span>
             <span className="text-white font-medium">{balance} NEAR</span>
+            <button
+              onClick={handleRefreshBalance}
+              disabled={isRefreshing}
+              className="text-white/50 hover:text-white/70 transition-colors disabled:opacity-50"
+              title="Refresh balance"
+            >
+              <RefreshCw className={`w-3 h-3 ${isRefreshing ? 'animate-spin' : ''}`} />
+            </button>
           </div>
           <div className="flex items-center space-x-2">
             <span className="text-white/50 text-xs font-mono">

@@ -20,6 +20,7 @@ import {
 } from "@/lib/provablyFair"
 import { useWallet } from "@/contexts/WalletContext"
 import { ContractService } from "@/lib/contractService"
+import { formatNEAR, formatGameCurrency, getConversionText } from "@/lib/currencyUtils"
 
 type GameStatus = "idle" | "flipping" | "won" | "lost" | "streak-active"
 
@@ -43,7 +44,7 @@ export function CoinFlip({ compact = false }: CoinFlipProps) {
   // Game state
   const [status, setStatus] = React.useState<GameStatus>("idle")
   const [selectedSide, setSelectedSide] = React.useState<Side | null>(null)
-  const [betAmount, setBetAmount] = React.useState<string>("1.00")
+  const [betAmount, setBetAmount] = React.useState<string>("0.10")
   const [popup, setPopup] = React.useState<PopupState>({ isOpen: false, type: null })
   const [isFlipping, setIsFlipping] = React.useState(false)
   const [result, setResult] = React.useState<Side | null>(null)
@@ -374,9 +375,12 @@ export function CoinFlip({ compact = false }: CoinFlipProps) {
                     value={betAmount}
                     onChange={(e) => setBetAmount(e.target.value)}
                     className="w-full bg-transparent outline-none border-0 h-8 p-0"
-                    placeholder="1.00"
+                    placeholder="0.10"
                     disabled={status === "flipping"}
                   />
+                </div>
+                <div className="text-xs text-muted-foreground px-2">
+                  NEAR
                 </div>
                 <button
                   onClick={() => adjustBetAmount(0.5)}
@@ -393,7 +397,7 @@ export function CoinFlip({ compact = false }: CoinFlipProps) {
                   2×
                 </button>
               </div>
-              <div className="mt-1 text-[11px] text-foreground/50">Min: ₹0.01</div>
+              <div className="mt-1 text-[11px] text-foreground/50">Min: 0.01 NEAR</div>
             </div>
 
             {/* Side Selection */}
@@ -455,7 +459,7 @@ export function CoinFlip({ compact = false }: CoinFlipProps) {
                 Current Multiplier ({currentMultiplier.toFixed(2)}×)
               </div>
               <div className="flex items-center gap-2 rounded-xl border border-border bg-background/70 px-3 py-2 text-sm">
-                <span className="text-foreground/60">₹{potentialPayout.toFixed(2)}</span>
+                <span className="text-foreground/60">{formatGameCurrency(potentialPayout.toString())}</span>
               </div>
             </div>
 
@@ -661,8 +665,7 @@ export function CoinFlip({ compact = false }: CoinFlipProps) {
                     </div>
                     <h2 className="text-3xl font-extrabold tracking-wide uppercase text-primary">Cashed Out!</h2>
                     <p className="text-foreground/70 text-base">
-                      Streak: {currentStreak} | Multiplier: {currentMultiplier.toFixed(2)}× | Won: ₹
-                      {totalPayout.toFixed(2)}
+                      Streak: {currentStreak} | Multiplier: {currentMultiplier.toFixed(2)}× | Won: {formatGameCurrency(totalPayout.toString())}
                     </p>
                     <p className="text-foreground/60 text-sm">Place a new bet to start again!</p>
                   </>

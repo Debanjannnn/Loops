@@ -11,6 +11,7 @@ import { ContractService } from "@/lib/contractService"
 import { useWallet } from "@/contexts/WalletContext"
 import { useContract } from "@/contexts/ContractProvider"
 import { gameOutcomeService } from "@/lib/gameOutcomeService"
+import { formatNEAR, formatGameCurrency, getConversionText } from "@/lib/currencyUtils"
 
 type GameStatus = "idle" | "in-progress" | "won" | "lost" | "cashed-out"
 
@@ -42,7 +43,7 @@ export function PaajiOnTop({ rows = 8, cols = 4 }: PaajiOnTopProps) {
   const [steps, setSteps] = React.useState(0)
   const [difficulty, setDifficulty] = React.useState<Difficulty>("Easy")
   const [numCols, setNumCols] = React.useState(cols)
-  const [betAmount, setBetAmount] = React.useState<string>("0.01")
+  const [betAmount, setBetAmount] = React.useState<string>("0.10")
   const [popup, setPopup] = React.useState<PopupState>({ isOpen: false, type: null })
   const [contractService, setContractService] = React.useState<ContractService | null>(null)
   const [isLoading, setIsLoading] = React.useState(false)
@@ -407,9 +408,12 @@ export function PaajiOnTop({ rows = 8, cols = 4 }: PaajiOnTopProps) {
                     value={betAmount}
                     onChange={(e) => setBetAmount(e.target.value)}
                     className="w-full bg-transparent outline-none border-0 h-8 p-0"
-                    placeholder="0.01"
+                    placeholder="0.10"
                     disabled={status === "in-progress"}
                   />
+                </div>
+                <div className="text-xs text-muted-foreground px-2">
+                  NEAR
                 </div>
                 <button
                   onClick={() => adjustBetAmount(0.5)}
@@ -484,9 +488,9 @@ export function PaajiOnTop({ rows = 8, cols = 4 }: PaajiOnTopProps) {
               <div className="mb-1 text-[11px] uppercase tracking-wide text-muted-foreground">Total Profit ({multiplier}×)</div>
               <div className="flex items-center gap-2 rounded-xl border border-border bg-background/70 px-3 py-2 text-sm">
                 <span className="text-foreground/60">
-                  ₹{status === "in-progress" || status === "cashed-out" || status === "won" 
-                    ? (parseFloat(betAmount) * (parseFloat(multiplier) - 1)).toFixed(2)
-                    : "0.00"
+                  {status === "in-progress" || status === "cashed-out" || status === "won" 
+                    ? formatGameCurrency((parseFloat(betAmount) * (parseFloat(multiplier) - 1)).toString())
+                    : "0.00 NEAR"
                   }
                 </span>
               </div>

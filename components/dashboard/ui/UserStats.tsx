@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button"
 import { ContractService } from "@/lib/contractService"
 import { useWallet } from "@/contexts/WalletContext"
 import { useContract } from "@/contexts/ContractProvider"
+import { formatNEAR, formatNEARWithConversion, getConversionText } from "@/lib/currencyUtils"
+import { useLiveConversion } from "@/lib/useCurrencyRates"
 import { 
   BarChart, 
   Bar, 
@@ -90,7 +92,7 @@ interface GameDistribution {
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8']
 
 export default function UserStats() {
-  const { selector, accountId, isConnected, getBalance } = useWallet()
+  const { selector, accountId, isConnected, getBalance, refreshBalance } = useWallet()
   const { getUserStats, withdraw: contractWithdraw } = useContract()
   console.log("accountId:", accountId)
   const [contractService, setContractService] = useState<ContractService | null>(null)
@@ -100,6 +102,11 @@ export default function UserStats() {
   const [gameDistribution, setGameDistribution] = useState<GameDistribution[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [walletBalance, setWalletBalance] = useState<string>("0")
+  
+  // Live conversion rates for main stats
+  const totalBetConversion = useLiveConversion(userStats?.totalBet || "0")
+  const totalWonConversion = useLiveConversion(userStats?.totalWon || "0")
+  const withdrawableConversion = useLiveConversion(userStats?.withdrawableBalance || "0")
   const [errorMessage, setErrorMessage] = useState<string>("")
   const [successMessage, setSuccessMessage] = useState<string>("")
   const [isNetworkError, setIsNetworkError] = useState<boolean>(false)
@@ -200,6 +207,35 @@ export default function UserStats() {
     setTransactionHash("")
   }
 
+  const refreshStats = async () => {
+    if (accountId && getUserStats) {
+      console.log("🔄 Refreshing user stats...")
+      try {
+        const contractStats = await getUserStats(accountId)
+        console.log("📊 Refreshed contract stats:", contractStats)
+
+        if (contractStats) {
+          const processedStats: UserStats = {
+            totalBet: (parseFloat(contractStats.totalBet.toString()) / 1e24).toFixed(2),
+            totalWon: (parseFloat(contractStats.totalWon.toString()) / 1e24).toFixed(2),
+            totalLost: (parseFloat(contractStats.totalLost.toString()) / 1e24).toFixed(2),
+            withdrawableBalance: (parseFloat(contractStats.withdrawableBalance.toString()) / 1e24).toFixed(2),
+            gamesPlayed: contractStats.gamesPlayed || 0,
+            gamesWon: contractStats.gamesWon || 0,
+            winRate: contractStats.gamesPlayed > 0 ? (contractStats.gamesWon / contractStats.gamesPlayed) * 100 : 0,
+            favoriteGame: "N/A",
+            joinDate: contractStats.joinDate ? new Date(Number(contractStats.joinDate) * 1000).toISOString() : "N/A",
+            lastPlayDate: contractStats.lastPlayDate ? new Date(Number(contractStats.lastPlayDate) * 1000).toISOString() : "N/A",
+            gameTypeStats: []
+          }
+          setUserStats(processedStats)
+          console.log("✅ Stats refreshed successfully")
+        }
+      } catch (error) {
+        console.error("❌ Failed to refresh stats:", error)
+      }
+    }
+  }
   // Auto-clear messages after 5 seconds
   useEffect(() => {
     if (errorMessage || successMessage) {
@@ -208,6 +244,13 @@ export default function UserStats() {
     }
   }, [errorMessage, successMessage])
 
+  // Auto-refresh stats every 30 seconds
+  useEffect(() => {
+    if (accountId) {
+      const interval = setInterval(refreshStats, 30000) // 30 seconds
+      return () => clearInterval(interval)
+    }
+  }, [accountId, refreshStats])
   // Simplified data fetching using ContractProvider
   const fetchUserStats = async () => {
     console.log("🚀 fetchUserStats called")
@@ -315,7 +358,7 @@ export default function UserStats() {
   }, [isConnected, accountId])
 
   const formatCurrency = (amount: string) => {
-    return `₹${parseFloat(amount).toFixed(2)}`
+    return `${formatNEAR(amount)} NEAR`
   }
 
   const formatDate = (dateString: string) => {
@@ -343,29 +386,22 @@ export default function UserStats() {
     
     try {
       console.log("💰 Starting withdrawal process...")
-      console.log(`💸 Withdrawing ${formatCurrency(withdrawableAmount.toString())}`)
+      console.log(`💸 Withdrawing ${formatNEAR(withdrawableAmount.toString())} NEAR`)
       
       // Use the ContractProvider withdraw function
       const hash = await contractWithdraw()
       console.log("✅ Withdrawal transaction successful:", hash)
       
-      setSuccessMessage(`🎉 Withdrawal successful! ${formatCurrency(withdrawableAmount.toString())} has been sent to your wallet.`)
+      setSuccessMessage(`🎉 Withdrawal successful! ${formatNEAR(withdrawableAmount.toString())} NEAR has been sent to your wallet.`)
       setTransactionHash(hash)
       
-      // Refresh stats after successful withdrawal
+      // Refresh stats and balance after successful withdrawal
       setTimeout(async () => {
-        console.log("🔄 Refreshing stats after withdrawal...")
-        await fetchUserStats()
-        // Also refresh wallet balance
-        if (getBalance) {
-          try {
-            const balance = await getBalance()
-            setWalletBalance(balance)
-            console.log("✅ Wallet balance refreshed:", balance)
-          } catch (error) {
-            console.error("❌ Error refreshing wallet balance:", error)
-          }
-        }
+        console.log("🔄 Refreshing stats and balance after withdrawal...")
+        await Promise.all([
+          refreshStats(),
+          refreshBalance()
+        ])
       }, 3000) // Wait for the transaction to be processed
       
     } catch (error: any) {
@@ -449,7 +485,7 @@ export default function UserStats() {
             <div className="flex-1">
               <h3 className="text-yellow-400 text-lg font-bold mb-2">🎉 You have winnings to withdraw!</h3>
               <p className="text-yellow-300 text-sm mb-3">
-                You have <span className="font-bold text-yellow-200">{formatCurrency(userStats.withdrawableBalance)}</span> ready to withdraw
+                You have <span className="font-bold text-yellow-200">{formatNEAR(userStats.withdrawableBalance)} NEAR</span> ready to withdraw
               </p>
               <Button 
                 onClick={handleWithdraw}
@@ -463,7 +499,7 @@ export default function UserStats() {
                   </>
                 ) : (
                   <>
-                    💰 Withdraw {formatCurrency(userStats.withdrawableBalance)}
+                    💰 Withdraw {formatNEAR(userStats.withdrawableBalance)} NEAR
                   </>
                 )}
               </Button>
@@ -526,7 +562,12 @@ export default function UserStats() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-muted-foreground">Total Bet</p>
-              <p className="text-2xl font-bold text-white">{formatCurrency(userStats?.totalBet || "0")}</p>
+              <p className="text-2xl font-bold text-white" title={totalBetConversion.conversionText}>
+                {formatCurrency(userStats?.totalBet || "0")}
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">
+                {totalBetConversion.isLoading ? "Loading..." : totalBetConversion.conversionText}
+              </p>
             </div>
             <DollarSign className="h-8 w-8 text-blue-500" />
           </div>
@@ -536,7 +577,12 @@ export default function UserStats() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-muted-foreground">Total Won</p>
-              <p className="text-2xl font-bold text-green-500">{formatCurrency(userStats?.totalWon || "0")}</p>
+              <p className="text-2xl font-bold text-green-500" title={totalWonConversion.conversionText}>
+                {formatCurrency(userStats?.totalWon || "0")}
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">
+                {totalWonConversion.isLoading ? "Loading..." : totalWonConversion.conversionText}
+              </p>
             </div>
             <TrendingUp className="h-8 w-8 text-green-500" />
           </div>
@@ -594,7 +640,7 @@ export default function UserStats() {
                     month: 'long', 
                     day: 'numeric' 
                   })}
-                  formatter={(value: number) => [`₹${value.toFixed(2)}`, 'Profit/Loss']}
+                  formatter={(value: number) => [`${formatNEAR(value.toString())} NEAR`, 'Profit/Loss']}
                 />
                 <Area 
                   type="monotone" 
@@ -691,7 +737,7 @@ export default function UserStats() {
                         {game.winRate}%
                       </span>
                     </td>
-                    <td className="py-3 px-4 text-green-400 font-medium">{formatCurrency(game.totalWon.toString())}</td>
+                    <td className="py-3 px-4 text-green-400 font-medium">{formatNEAR(game.totalWon.toString())} NEAR</td>
                     <td className="py-3 px-4 text-white">{game.bestMultiplier.toFixed(2)}×</td>
                     <td className="py-3 px-4 text-white">{game.avgMultiplier.toFixed(2)}×</td>
                   </tr>
@@ -716,8 +762,11 @@ export default function UserStats() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-muted-foreground">Withdrawable Balance</p>
-              <p className={`text-2xl font-bold ${userStats && parseFloat(userStats.withdrawableBalance) > 0 ? 'text-yellow-400' : 'text-white'}`}>
+              <p className={`text-2xl font-bold ${userStats && parseFloat(userStats.withdrawableBalance) > 0 ? 'text-yellow-400' : 'text-white'}`} title={withdrawableConversion.conversionText}>
                 {formatCurrency(userStats?.withdrawableBalance || "0")}
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">
+                {withdrawableConversion.isLoading ? "Loading..." : withdrawableConversion.conversionText}
               </p>
               {userStats && parseFloat(userStats.withdrawableBalance) > 0 ? (
                 <div className="mt-3">
@@ -733,7 +782,7 @@ export default function UserStats() {
                       </>
                     ) : (
                       <>
-                        💰 Withdraw {formatCurrency(userStats.withdrawableBalance)}
+                        💰 Withdraw {formatNEAR(userStats.withdrawableBalance)} NEAR
                       </>
                     )}
                   </Button>
