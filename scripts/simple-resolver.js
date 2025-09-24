@@ -3,8 +3,8 @@ const fs = require('fs');
 require('dotenv').config();
 
 // Configuration
-const CONTRACT_ID = process.env.CONTRACT_ID || 'game-program-v2.testnet';
-const RESOLVER_ACCOUNT_ID = process.env.RESOLVER_ACCOUNT_ID || 'resolver.game-program.testnet';
+const CONTRACT_ID = process.env.CONTRACT_ID || 'game-v0.testnet';
+const RESOLVER_ACCOUNT_ID = process.env.RESOLVER_ACCOUNT_ID || 'resolver-v0.testnet';
 
 console.log('🚀 Starting automated game resolver...');
 console.log(`📋 Contract: ${CONTRACT_ID}`);

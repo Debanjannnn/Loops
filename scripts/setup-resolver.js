@@ -11,15 +11,15 @@ if (!fs.existsSync(envPath)) {
   console.log('📝 Creating .env file...');
   
   const envContent = `# NEAR Contract Configuration
-CONTRACT_ID=game-program-v2.testnet
-RESOLVER_ACCOUNT_ID=resolver.game-program.testnet
+CONTRACT_ID=game-v0.testnet
+RESOLVER_ACCOUNT_ID=resolver-v0.testnet
 
 # Resolver Private Key (for automated game resolution)
-# Get this from: near keys list resolver.game-program.testnet --networkId testnet
+# Get this from: near keys list resolver-v0.testnet --networkId testnet
 RESOLVER_PRIVATE_KEY=ed25519:YOUR_PRIVATE_KEY_HERE
 
 # Optional: Custom RPC endpoint
-# NEAR_RPC_URL=https://rpc.testnet.near.org
+# NEAR_RPC_URL=https://near-testnet.api.pagoda.co/rpc/v1
 `;
 
   fs.writeFileSync(envPath, envContent);

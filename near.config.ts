@@ -8,7 +8,7 @@ import { setupNightly } from "@near-wallet-selector/nightly";
 
 // Contract configuration
 // Updated contract with comprehensive user statistics
-export const CONTRACT_ID = "game-program-v2.testnet";
+export const CONTRACT_ID = "game-v0.testnet";
 export const NETWORK = "testnet";
 
 // Initialize wallet selector

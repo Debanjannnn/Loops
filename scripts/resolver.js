@@ -4,9 +4,9 @@ require('dotenv').config();
 
 // Configuration
 const NETWORK_ID = 'testnet';
-const NODE_URL = 'https://rpc.testnet.near.org';
-const CONTRACT_ID = process.env.CONTRACT_ID || 'game-program-v2.testnet';
-const RESOLVER_ACCOUNT_ID = process.env.RESOLVER_ACCOUNT_ID || 'resolver.game-program.testnet';
+const NODE_URL = 'https://near-testnet.api.pagoda.co/rpc/v1';
+const CONTRACT_ID = process.env.CONTRACT_ID || 'game-v0.testnet';
+const RESOLVER_ACCOUNT_ID = process.env.RESOLVER_ACCOUNT_ID || 'resolver-v0.testnet';
 const RESOLVER_PRIVATE_KEY = process.env.RESOLVER_PRIVATE_KEY;
 
 if (!RESOLVER_PRIVATE_KEY) {

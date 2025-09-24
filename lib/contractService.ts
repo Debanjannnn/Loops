@@ -154,7 +154,7 @@ export class ContractService {
       
       console.log('📡 Making RPC request to NEAR:', requestBody)
       
-      const response = await fetch('https://rpc.testnet.near.org', {
+      const response = await fetch('https://near-testnet.api.pagoda.co/rpc/v1', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -206,6 +206,10 @@ export class ContractService {
     }
   }
 
+  async getUserData() {
+    
+  }
+
 
   /**
    * Get comprehensive user statistics using new SecureGames contract
@@ -247,11 +251,11 @@ export class ContractService {
       
       console.log('📡 Making RPC requests to NEAR for user stats')
       
-      // RPC endpoints with fallbacks
+      // RPC endpoints with fallbacks - using more reliable endpoints
       const rpcEndpoints = [
-        'https://rpc.testnet.near.org',
         'https://near-testnet.api.pagoda.co/rpc/v1',
-        'https://testnet-rpc.near.org'
+        'https://testnet-rpc.near.org',
+        'https://rpc.testnet.near.org'
       ]
 
       // Try each endpoint until one works
@@ -264,7 +268,7 @@ export class ContractService {
           console.log(`🔄 Trying RPC endpoint: ${endpoint}`)
           
           const controller = new AbortController()
-          const timeoutId = setTimeout(() => controller.abort(), 15000) // 15 second timeout
+          const timeoutId = setTimeout(() => controller.abort(), 10000) // 10 second timeout
           
           const responses = await Promise.all([
             fetch(endpoint, {
@@ -440,7 +444,7 @@ export class ContractService {
       
       console.log('📡 Making RPC request to NEAR:', requestBody)
       
-      const response = await fetch('https://rpc.testnet.near.org', {
+      const response = await fetch('https://near-testnet.api.pagoda.co/rpc/v1', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -517,7 +521,7 @@ export class ContractService {
       
       console.log('📡 Making RPC request to NEAR:', requestBody)
       
-      const response = await fetch('https://rpc.testnet.near.org', {
+      const response = await fetch('https://near-testnet.api.pagoda.co/rpc/v1', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -593,7 +597,7 @@ export class ContractService {
       
       console.log('📡 Making RPC request to NEAR:', requestBody)
       
-      const response = await fetch('https://rpc.testnet.near.org', {
+      const response = await fetch('https://near-testnet.api.pagoda.co/rpc/v1', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -683,7 +687,7 @@ export class ContractService {
    */
   async getContractTotalLosses(): Promise<string> {
     try {
-      const response = await fetch('https://rpc.testnet.near.org', {
+      const response = await fetch('https://near-testnet.api.pagoda.co/rpc/v1', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -720,7 +724,7 @@ export class ContractService {
    */
   async getTotalUsers(): Promise<number> {
     try {
-      const response = await fetch('https://rpc.testnet.near.org', {
+      const response = await fetch('https://near-testnet.api.pagoda.co/rpc/v1', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -758,7 +762,7 @@ export class ContractService {
    */
   async hasPendingBet(accountId: string): Promise<boolean> {
     try {
-      const response = await fetch('https://rpc.testnet.near.org', {
+      const response = await fetch('https://near-testnet.api.pagoda.co/rpc/v1', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -795,7 +799,7 @@ export class ContractService {
    */
   async getOracleAccount(): Promise<string> {
     try {
-      const response = await fetch('https://rpc.testnet.near.org', {
+      const response = await fetch('https://near-testnet.api.pagoda.co/rpc/v1', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

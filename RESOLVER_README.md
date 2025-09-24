@@ -129,12 +129,12 @@ The frontend is designed to work seamlessly with the resolver:
 
 ```env
 # Required
-CONTRACT_ID=game-program-v2.testnet
-RESOLVER_ACCOUNT_ID=resolver.game-program.testnet
+CONTRACT_ID=game-v0.testnet
+RESOLVER_ACCOUNT_ID=resolver-v0.testnet
 RESOLVER_PRIVATE_KEY=ed25519:YOUR_PRIVATE_KEY
 
 # Optional
-NEAR_RPC_URL=https://rpc.testnet.near.org
+NEAR_RPC_URL=https://near-testnet.api.pagoda.co/rpc/v1
 DEBUG=false
 ```
 

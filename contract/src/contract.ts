@@ -22,6 +22,7 @@ class UserStats {
   gamesWon: number = 0;
   joinDate: bigint = BigInt(0);
   lastPlayDate: bigint = BigInt(0);
+  lastPlayTimestamp: bigint = BigInt(0); 
 }
 
 class GameTypeStats {
@@ -29,6 +30,7 @@ class GameTypeStats {
   totalBets: bigint = BigInt(0);
   totalWon: bigint = BigInt(0);
   totalLost: bigint = BigInt(0);
+  timestamp: bigint = BigInt(0); //
   gamesPlayed: number = 0;
   gamesWon: number = 0;
   bestMultiplierPercent: number = 0; // integer percent, e.g., 150 = 1.5x

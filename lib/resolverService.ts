@@ -105,7 +105,7 @@ export class ResolverService {
       
       console.log('📡 Making RPC request to NEAR:', requestBody)
       
-      const response = await fetch('https://rpc.testnet.near.org', {
+      const response = await fetch('https://near-testnet.api.pagoda.co/rpc/v1', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

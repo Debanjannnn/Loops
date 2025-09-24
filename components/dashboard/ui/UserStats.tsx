@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { ContractService } from "@/lib/contractService"
 import { useWallet } from "@/contexts/WalletContext"
+import { useContract } from "@/contexts/ContractProvider"
 import { 
   BarChart, 
   Bar, 
@@ -29,7 +30,8 @@ import {
   Trophy, 
   Target,
   Calendar,
-  RefreshCw
+  RefreshCw,
+  CloudCog
 } from "lucide-react"
 import GameResolver from "@/components/games/GameResolver"
 
@@ -59,6 +61,18 @@ interface UserStats {
   gameTypeStats: GameStats[]
 }
 
+// Contract data format (from NEAR contract)
+interface ContractUserStats {
+  totalBet: string | bigint
+  totalWon: string | bigint
+  totalLost: string | bigint
+  withdrawableBalance: string | bigint
+  gamesPlayed: number
+  gamesWon: number
+  joinDate: string | bigint
+  lastPlayDate: string | bigint
+}
+
 interface ChartData {
   date: string
   profit: number
@@ -77,6 +91,7 @@ const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8']
 
 export default function UserStats() {
   const { selector, accountId, isConnected, getBalance } = useWallet()
+  const { getUserStats } = useContract()
   console.log("accountId:", accountId)
   const [contractService, setContractService] = useState<ContractService | null>(null)
   const [userStats, setUserStats] = useState<UserStats | null>(null)
@@ -90,7 +105,55 @@ export default function UserStats() {
   const [isNetworkError, setIsNetworkError] = useState<boolean>(false)
   const [transactionHash, setTransactionHash] = useState<string>("")
 
-  // Initialize contract service when wallet is connected
+  useEffect(() => {
+    const fetchUserData = async () => {
+      if (accountId) {
+        console.log("🔄 Fetching user data for:", accountId)
+        const contractStats = await getUserStats(accountId)
+        console.log("📊 Received contract stats:", contractStats)
+        
+        if (contractStats) {
+          // Convert contract data to our expected format
+          const processedStats: UserStats = {
+            totalBet: (parseFloat(contractStats.totalBet.toString()) / 1e24).toFixed(2),
+            totalWon: (parseFloat(contractStats.totalWon.toString()) / 1e24).toFixed(2),
+            totalLost: (parseFloat(contractStats.totalLost.toString()) / 1e24).toFixed(2),
+            withdrawableBalance: (parseFloat(contractStats.withdrawableBalance.toString()) / 1e24).toFixed(2),
+            gamesPlayed: contractStats.gamesPlayed || 0,
+            gamesWon: contractStats.gamesWon || 0,
+            winRate: contractStats.gamesPlayed > 0 ? (contractStats.gamesWon / contractStats.gamesPlayed) * 100 : 0,
+            favoriteGame: "N/A", // Will be updated when we get game type stats
+            joinDate: contractStats.joinDate ? new Date(Number(contractStats.joinDate) * 1000).toISOString() : "N/A",
+            lastPlayDate: contractStats.lastPlayDate ? new Date(Number(contractStats.lastPlayDate) * 1000).toISOString() : "N/A",
+            gameTypeStats: [] // Will be populated separately if needed
+          }
+          
+          console.log("✅ Processed user stats:", processedStats)
+          setUserStats(processedStats)
+        } else {
+          console.log("❌ No stats found for user")
+          // Set default empty stats
+          const defaultStats: UserStats = {
+            totalBet: "0.00",
+            totalWon: "0.00",
+            totalLost: "0.00",
+            withdrawableBalance: "0.00",
+            gamesPlayed: 0,
+            gamesWon: 0,
+            winRate: 0,
+            favoriteGame: "N/A",
+            joinDate: "N/A",
+            lastPlayDate: "N/A",
+            gameTypeStats: []
+          }
+          setUserStats(defaultStats)
+        }
+      }
+    }
+    fetchUserData()
+  }, [accountId])
+
+  // Initialize contract service when wallet is connected (for withdrawal functionality)
   useEffect(() => {
     console.log("🔗 Wallet connection effect triggered")
     console.log("selector:", selector)
@@ -145,91 +208,51 @@ export default function UserStats() {
     }
   }, [errorMessage, successMessage])
 
-  // Fetch all data from contract - inspired by the betting interface
-  const fetchAllContractData = async () => {
-    if (!contractService || !accountId) {
-      console.log("❌ Cannot fetch data - missing contractService or accountId")
-      console.log("contractService:", contractService)
+  // Simplified data fetching using ContractProvider
+  const fetchUserStats = async () => {
+    console.log("🚀 fetchUserStats called")
       console.log("accountId:", accountId)
+    console.log("getUserStats function:", getUserStats)
+    
+    if (!accountId) {
+      console.log("❌ Cannot fetch stats - missing accountId")
       return
     }
 
-    console.log("🔄 Fetching contract data for account:", accountId)
+    console.log("✅ Starting to fetch user stats...")
+    setIsLoading(true)
+    clearMessages() // Clear any existing messages
     
     try {
-      // Fetch comprehensive user stats from contract
-      console.log("📡 Calling contractService.getUserComprehensiveStats...")
-      const comprehensiveStats = await contractService.getUserComprehensiveStats(accountId)
-      console.log("📊 Raw comprehensive stats received:", comprehensiveStats)
+      const contractStats = await getUserStats(accountId)
+      console.log("📊 Raw contract stats received:", contractStats)
       
-      if (comprehensiveStats) {
-        console.log("✅ Comprehensive stats found, processing data...")
-        
-        // Convert contract data to our format - handle both string and number formats
-        const totalBetValue = typeof comprehensiveStats.totalBet === 'string' 
-          ? comprehensiveStats.totalBet 
-          : comprehensiveStats.totalBet.toString()
-        const totalWonValue = typeof comprehensiveStats.totalWon === 'string' 
-          ? comprehensiveStats.totalWon 
-          : comprehensiveStats.totalWon.toString()
-        const totalLostValue = typeof comprehensiveStats.totalLost === 'string' 
-          ? comprehensiveStats.totalLost 
-          : comprehensiveStats.totalLost.toString()
-        const withdrawableValue = typeof comprehensiveStats.withdrawableBalance === 'string' 
-          ? comprehensiveStats.withdrawableBalance 
-          : comprehensiveStats.withdrawableBalance.toString()
-        
-        const realUserStats: UserStats = {
-          totalBet: (parseFloat(totalBetValue) / 1e24).toFixed(2), // Convert from yoctoNEAR
-          totalWon: (parseFloat(totalWonValue) / 1e24).toFixed(2),
-          totalLost: (parseFloat(totalLostValue) / 1e24).toFixed(2),
-          withdrawableBalance: (parseFloat(withdrawableValue) / 1e24).toFixed(2),
-          gamesPlayed: comprehensiveStats.gamesPlayed || 0,
-          gamesWon: comprehensiveStats.gamesWon || 0,
-          winRate: comprehensiveStats.winRate || 0,
-          favoriteGame: comprehensiveStats.favoriteGame || "N/A",
-          joinDate: comprehensiveStats.joinDate ? new Date(Number(comprehensiveStats.joinDate) * 1000).toISOString() : "N/A",
-          lastPlayDate: comprehensiveStats.lastPlayDate ? new Date(Number(comprehensiveStats.lastPlayDate) * 1000).toISOString() : "N/A",
-          gameTypeStats: comprehensiveStats.gameTypeStats || []
+      if (contractStats) {
+        // Convert contract data to our expected format
+        const processedStats: UserStats = {
+          totalBet: (parseFloat(contractStats.totalBet.toString()) / 1e24).toFixed(2),
+          totalWon: (parseFloat(contractStats.totalWon.toString()) / 1e24).toFixed(2),
+          totalLost: (parseFloat(contractStats.totalLost.toString()) / 1e24).toFixed(2),
+          withdrawableBalance: (parseFloat(contractStats.withdrawableBalance.toString()) / 1e24).toFixed(2),
+          gamesPlayed: contractStats.gamesPlayed || 0,
+          gamesWon: contractStats.gamesWon || 0,
+          winRate: contractStats.gamesPlayed > 0 ? (contractStats.gamesWon / contractStats.gamesPlayed) * 100 : 0,
+          favoriteGame: "N/A", // Will be updated when we get game type stats
+          joinDate: contractStats.joinDate ? new Date(Number(contractStats.joinDate) * 1000).toISOString() : "N/A",
+          lastPlayDate: contractStats.lastPlayDate ? new Date(Number(contractStats.lastPlayDate) * 1000).toISOString() : "N/A",
+          gameTypeStats: [] // Will be populated separately if needed
         }
         
-        console.log("🎯 Processed user stats:", realUserStats)
-        setUserStats(realUserStats)
-
-        // Process game type stats for charts and tables
-        const processedGameStats: GameStats[] = comprehensiveStats.gameTypeStats?.map((gameTypeStat: any) => ({
-          gameType: gameTypeStat.gameType,
-          totalBets: parseFloat(gameTypeStat.totalBets.toString()) / 1e24,
-          totalWon: parseFloat(gameTypeStat.totalWon.toString()) / 1e24,
-          totalLost: parseFloat(gameTypeStat.totalLost.toString()) / 1e24,
-          winRate: gameTypeStat.gamesPlayed > 0 ? (gameTypeStat.gamesWon / gameTypeStat.gamesPlayed) * 100 : 0,
-          avgMultiplier: gameTypeStat.gamesPlayed > 0 ? gameTypeStat.totalMultiplier / gameTypeStat.gamesPlayed : 0,
-          bestMultiplier: gameTypeStat.bestMultiplier || 0,
-          totalGames: gameTypeStat.gamesPlayed || 0,
-          gamesWon: gameTypeStat.gamesWon || 0
-        })) || []
-
-        console.log("🎮 Processed game stats:", processedGameStats)
-        setGameStats(processedGameStats)
-
-        // Create game distribution data for pie chart
-        const gameDistributionData: GameDistribution[] = processedGameStats.map((game, index) => ({
-          name: game.gameType,
-          value: game.totalGames,
-          color: COLORS[index % COLORS.length]
-        }))
-
-        console.log("📊 Game distribution data:", gameDistributionData)
-        setGameDistribution(gameDistributionData)
-
-        // For now, we'll show empty chart data since we don't have historical data
-        // In a real implementation, you'd want to add methods to track game history by date
-        console.log("📈 Setting empty chart data (no historical data in contract)")
-        setChartData([])
+        console.log("✅ Processed user stats:", processedStats)
+        setUserStats(processedStats)
         
+        // Set empty game stats for now (can be populated later if needed)
+        setGameStats([])
+        setChartData([])
+        setGameDistribution([])
       } else {
-        console.log("❌ No comprehensive stats found for user - setting default values")
-        // No stats found, use default values
+        console.log("❌ No stats found for user")
+        // Set default empty stats
         const defaultStats: UserStats = {
           totalBet: "0.00",
           totalWon: "0.00",
@@ -243,31 +266,14 @@ export default function UserStats() {
           lastPlayDate: "N/A",
           gameTypeStats: []
         }
-        console.log("🔧 Setting default stats:", defaultStats)
         setUserStats(defaultStats)
         setGameStats([])
         setChartData([])
         setGameDistribution([])
       }
-      
     } catch (error: any) {
-      console.error("❌ Error fetching contract data:", error)
-      console.error("Error details:", error)
-      
-      // Check if it's a network error
-      if (error.message?.includes('All RPC endpoints failed') || 
-          error.message?.includes('Network error') ||
-          error.message?.includes('Failed to fetch')) {
-        setIsNetworkError(true)
-        setErrorMessage("Network connection issue. Please check your internet connection and try again.")
-      } else if (error.message?.includes("Contract method is not found")) {
-        console.log("🔧 Contract method not found - setting default values")
-        setIsNetworkError(false)
-        setErrorMessage("Contract not properly deployed. Please contact support.")
-      } else {
-        setIsNetworkError(false)
+      console.error("❌ Error in fetchUserStats:", error)
         setErrorMessage("Failed to fetch user statistics")
-      }
       
       // Set empty data on error
       const errorStats: UserStats = {
@@ -283,79 +289,30 @@ export default function UserStats() {
         lastPlayDate: "N/A",
         gameTypeStats: []
       }
-      console.log("🔧 Setting error fallback stats:", errorStats)
       setUserStats(errorStats)
       setGameStats([])
       setChartData([])
       setGameDistribution([])
-    }
-  }
-
-  const fetchUserStats = async () => {
-    console.log("🚀 fetchUserStats called")
-    console.log("contractService:", contractService)
-    console.log("accountId:", accountId)
-    
-    if (!contractService || !accountId) {
-      console.log("❌ Cannot fetch stats - missing contractService or accountId")
-      return
-    }
-
-    console.log("✅ Starting to fetch user stats...")
-    setIsLoading(true)
-    clearMessages() // Clear any existing messages
-    
-    try {
-      await fetchAllContractData()
-      console.log("✅ fetchAllContractData completed successfully")
-    } catch (error: any) {
-      console.error("❌ Error in fetchUserStats:", error)
-      
-      // Handle specific error cases like in the betting interface
-      // @ts-ignore - best effort error message
-      if (error.message?.includes("Contract method is not found")) {
-        console.log("🔧 Contract method not found - setting default values")
-        setErrorMessage("Contract not properly deployed. Please contact support.")
-        
-        // Set default values when contract method is not found
-        const defaultStats: UserStats = {
-          totalBet: "0.00",
-          totalWon: "0.00",
-          totalLost: "0.00",
-          withdrawableBalance: "0.00",
-          gamesPlayed: 0,
-          gamesWon: 0,
-          winRate: 0,
-          favoriteGame: "N/A",
-          joinDate: "N/A",
-          lastPlayDate: "N/A",
-          gameTypeStats: []
-        }
-        setUserStats(defaultStats)
-        setGameStats([])
-        setChartData([])
-        setGameDistribution([])
-      } else {
-        setErrorMessage("Failed to fetch user statistics")
-      }
     } finally {
       setIsLoading(false)
       console.log("🏁 fetchUserStats completed")
     }
   }
 
+
   useEffect(() => {
     console.log("🔄 Stats fetch effect triggered")
     console.log("isConnected:", isConnected)
-    console.log("contractService:", contractService)
+    console.log("accountId:", accountId)
+    console.log("getUserStats:", getUserStats)
     
-    if (isConnected) {
+    if (isConnected && accountId) {
       console.log("✅ Wallet is connected, fetching user stats...")
       fetchUserStats()
     } else {
-      console.log("❌ Wallet not connected, skipping stats fetch")
+      console.log("❌ Wallet not connected or missing dependencies, skipping stats fetch")
     }
-  }, [isConnected, contractService])
+  }, [isConnected, accountId])
 
   const formatCurrency = (amount: string) => {
     return `₹${parseFloat(amount).toFixed(2)}`

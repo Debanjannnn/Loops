@@ -1,197 +1,127 @@
-"use client"
+"use client";
 
-import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react'
-import { setupWalletSelector, WalletSelector } from '@near-wallet-selector/core'
-import { setupModal } from '@near-wallet-selector/modal-ui'
-import { setupNearWallet } from '@near-wallet-selector/near-wallet'
-import { setupMyNearWallet } from '@near-wallet-selector/my-near-wallet'
-import { setupSender } from '@near-wallet-selector/sender'
-import { setupHereWallet } from '@near-wallet-selector/here-wallet'
-import { setupMeteorWallet } from '@near-wallet-selector/meteor-wallet'
-import { setupNightly } from '@near-wallet-selector/nightly'
-import { setupLedger } from '@near-wallet-selector/ledger'
-import { CONTRACT_ID } from '@/near.config'
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  useCallback,
+  ReactNode,
+} from "react";
+import { WalletSelector } from "@near-wallet-selector/core";
+import { setupWalletSelector } from "@near-wallet-selector/core";
+import { setupModal } from "@near-wallet-selector/modal-ui";
+import { setupNearWallet } from "@near-wallet-selector/near-wallet";
+import { setupMyNearWallet } from "@near-wallet-selector/my-near-wallet";
+import { setupSender } from "@near-wallet-selector/sender";
+import { setupHereWallet } from "@near-wallet-selector/here-wallet";
+import { setupMeteorWallet } from "@near-wallet-selector/meteor-wallet";
+import { setupNightly } from "@near-wallet-selector/nightly";
+import { setupLedger } from "@near-wallet-selector/ledger";
+import { CONTRACT_ID } from "@/near.config";
+import { providers, utils } from "near-api-js";
 
 interface WalletContextType {
-  selector: WalletSelector | null
-  modal: any
-  accountId: string | null
-  isConnected: boolean
-  isLoading: boolean
-  connect: () => Promise<void>
-  disconnect: () => Promise<void>
-  getBalance: () => Promise<string>
+  selector: WalletSelector | null;
+  modal: any;
+  accountId: string | null;
+  isConnected: boolean;
+  isLoading: boolean;
+  connect: () => void;
+  disconnect: () => Promise<void>;
+  getBalance: () => Promise<string>;
 }
 
-const WalletContext = createContext<WalletContextType | undefined>(undefined)
+const WalletContext = createContext<WalletContextType | undefined>(undefined);
 
 interface WalletProviderProps {
-  children: ReactNode
+  children: ReactNode;
 }
 
 export function WalletProvider({ children }: WalletProviderProps) {
-  const [selector, setSelector] = useState<WalletSelector | null>(null)
-  const [modal, setModal] = useState<any>(null)
-  const [accountId, setAccountId] = useState<string | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
+  const [selector, setSelector] = useState<WalletSelector | null>(null);
+  const [modal, setModal] = useState<any>(null);
+  const [accountId, setAccountId] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const getBalance = useCallback(async (): Promise<string> => {
+    if (!selector || !accountId) return "0";
+
+    try {
+      const { network } = selector.options;
+      const provider = new providers.JsonRpcProvider({ 
+        url: 'https://near-testnet.api.pagoda.co/rpc/v1' 
+      });
+      const res: any = await provider.query({
+        request_type: "view_account",
+        account_id: accountId,
+        finality: "final",
+      });
+      return utils.format.formatNearAmount(res.amount, 4); // returns in NEAR
+    } catch (err) {
+      console.error("Failed to fetch balance:", err);
+      return "0";
+    }
+  }, [selector, accountId]);
 
   useEffect(() => {
-    initializeWallet()
-  }, [])
+    const init = async () => {
+      try {
+        const walletSelector = await setupWalletSelector({
+          network: "testnet",
+          modules: [
+          
+            setupMyNearWallet(),
+            setupSender(),
+            setupHereWallet(),
+            setupMeteorWallet(),
+            setupNightly(),
+            setupLedger(),
+          ],
+        });
 
-  const initializeWallet = async () => {
-    try {
-      const walletSelector = await setupWalletSelector({
-        network: 'testnet',
-        modules: [
-          setupNearWallet() as any,
-          setupMyNearWallet() as any,
-          setupSender() as any,
-          setupHereWallet() as any,
-          setupMeteorWallet() as any,
-          setupNightly() as any,
-          setupLedger() as any,
-        ],
-      })
+        const walletModal = setupModal(walletSelector, { contractId: CONTRACT_ID });
 
-      const walletModal = setupModal(walletSelector, {
-        contractId: CONTRACT_ID,
-      })
+        setSelector(walletSelector);
+        setModal(walletModal);
 
-      setSelector(walletSelector)
-      setModal(walletModal)
+        // Init state
+        const state = walletSelector.store.getState();
+        if (state.accounts.length > 0) {
+          setAccountId(state.accounts[0].accountId);
+        }
 
-      // Check if user is already signed in
-      const isSignedIn = walletSelector.isSignedIn()
-      if (isSignedIn) {
-        const account = walletSelector.store.getState().accounts[0]
-        setAccountId(account?.accountId || null)
+        // Subscribe to store updates
+        const subscription = walletSelector.store.observable.subscribe((newState) => {
+          const acc = newState.accounts[0];
+          setAccountId(acc?.accountId || null);
+        });
+
+        return () => subscription.unsubscribe();
+      } catch (err) {
+        console.error("Wallet init error:", err);
+      } finally {
+        setIsLoading(false);
       }
+    };
 
-      // Listen for account changes
-      walletSelector.store.observable.subscribe((state) => {
-        const account = state.accounts[0]
-        setAccountId(account?.accountId || null)
-      })
-    } catch (error) {
-      console.error('Failed to initialize wallet:', error)
-    } finally {
-      setIsLoading(false)
-    }
-  }
+    init();
+  }, []);
 
-  const connect = async () => {
-    if (!modal) return
-
-    try {
-      // Show the modal to let user select a wallet
-      modal.show()
-    } catch (error) {
-      console.error('Failed to connect wallet:', error)
-    }
-  }
+  const connect = () => {
+    if (modal) modal.show();
+  };
 
   const disconnect = async () => {
-    if (!selector) return
-
+    if (!selector) return;
     try {
-      const wallet = await selector.wallet()
-      if (wallet) {
-        await wallet.signOut()
-      }
-      setAccountId(null)
-    } catch (error) {
-      console.error('Failed to disconnect wallet:', error)
+      const wallet = await selector.wallet();
+      await wallet.signOut();
+      setAccountId(null);
+    } catch (err) {
+      console.error("Failed to disconnect:", err);
     }
-  }
-
-  const getBalance = async (): Promise<string> => {
-    if (!selector || !accountId) return '0'
-
-    try {
-      // Use the wallet selector's built-in balance fetching
-      const wallet = await selector.wallet()
-      if (!wallet) return '0'
-
-      // Try to get balance from the wallet's accounts
-      const accounts = await wallet.getAccounts()
-      const account = accounts.find(acc => acc.accountId === accountId)
-      
-      if (account && (account as any).balance) {
-        // Convert from yoctoNEAR to NEAR
-        return (parseInt((account as any).balance) / 1e24).toFixed(4)
-      }
-
-      // If no balance in accounts, try using the selector's account state
-      const state = selector.store.getState()
-      const accountState = state.accounts.find(acc => acc.accountId === accountId)
-      
-      if (accountState && (accountState as any).balance) {
-        return (parseInt((accountState as any).balance) / 1e24).toFixed(4)
-      }
-
-      // Fallback: Fetch balance directly from NEAR RPC with multiple endpoints
-      const rpcEndpoints = [
-        'https://rpc.testnet.near.org',
-        'https://near-testnet.api.pagoda.co/rpc/v1',
-        'https://testnet-rpc.near.org'
-      ]
-
-      for (const endpoint of rpcEndpoints) {
-        try {
-          console.log(`🔄 Trying RPC endpoint: ${endpoint}`)
-          
-          const controller = new AbortController()
-          const timeoutId = setTimeout(() => controller.abort(), 10000) // 10 second timeout
-          
-          const response = await fetch(endpoint, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              jsonrpc: '2.0',
-              id: 'dontcare',
-              method: 'query',
-              params: {
-                request_type: 'view_account',
-                finality: 'final',
-                account_id: accountId,
-              },
-            }),
-            signal: controller.signal
-          })
-
-          clearTimeout(timeoutId)
-
-          if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`)
-          }
-
-          const data = await response.json()
-          
-          if (data.error) {
-            throw new Error(`RPC Error: ${data.error.message || 'Unknown error'}`)
-          }
-          
-          if (data.result && data.result.amount) {
-            console.log(`✅ Balance fetched successfully from ${endpoint}`)
-            return (parseInt(data.result.amount) / 1e24).toFixed(4)
-          }
-        } catch (rpcError: any) {
-          console.warn(`❌ RPC endpoint ${endpoint} failed:`, rpcError.message)
-          // Continue to next endpoint
-        }
-      }
-      
-      console.error('🚨 All RPC endpoints failed to fetch balance')
-
-      return '0.0000'
-    } catch (error) {
-      console.error('Failed to get balance:', error)
-      return '0.0000'
-    }
-  }
+  };
 
   const value: WalletContextType = {
     selector,
@@ -202,19 +132,13 @@ export function WalletProvider({ children }: WalletProviderProps) {
     connect,
     disconnect,
     getBalance,
-  }
+  };
 
-  return (
-    <WalletContext.Provider value={value}>
-      {children}
-    </WalletContext.Provider>
-  )
+  return <WalletContext.Provider value={value}>{children}</WalletContext.Provider>;
 }
 
 export function useWallet() {
-  const context = useContext(WalletContext)
-  if (context === undefined) {
-    throw new Error('useWallet must be used within a WalletProvider')
-  }
-  return context
+  const ctx = useContext(WalletContext);
+  if (!ctx) throw new Error("useWallet must be used within WalletProvider");
+  return ctx;
 }
