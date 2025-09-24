@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import DashboardHeader from "@/components/dashboard/ui/Header"
 import SidebarTabs from "@/components/dashboard/ui/SidebarTabs"
 import GameContainer from "@/components/dashboard/ui/GameContainer"
@@ -19,6 +19,7 @@ import PaajiOnTop from "@/components/games/PaajiOnTop/Paaji"
 import UserStats from "@/components/dashboard/ui/UserStats"
 import NearkMarketWork from "@/components/dashboard/ui/nearkmarketwork"
 import { useRouter } from "next/navigation"
+import LoadingScreen from "@/components/ui/LoadingScreen"
 
 export default function DashboardPage() {
   const { selectedSection, setSelectedSection, mode } = useUI()
@@ -26,8 +27,18 @@ export default function DashboardPage() {
   const [activeGame, setActiveGame] = useState<"rugs" | "mines" | "paaji" | "coinflip" | null>(null)
   const [balance, setBalance] = useState<number>(1234.56)
   const [activeCategory, setActiveCategory] = useState<string>("All")
+  // const [isLoading, setIsLoading] = useState<boolean>(true)
 
   const categories = ["All", "Duel Poker", "Scratchcards", "Crash", "Blackjack", "Live Games"]
+
+  // Loading timer - show loading for 1 second
+  // useEffect(() => {
+  //   const timer = setTimeout(() => {
+  //     setIsLoading(false)
+  //   }, 1000)
+
+  //   return () => clearTimeout(timer)
+  // }, [])
 
   const renderCenter = () => {
     if (selectedSection === "home") {
@@ -46,13 +57,12 @@ export default function DashboardPage() {
                   <button
                     key={c}
                     onClick={() => setActiveCategory(c)}
-                    className={`px-3 py-1.5 rounded-xl text-sm whitespace-nowrap border transition-colors ${
-                      activeCategory === c
-                        ? (c === "All"
-                          ? "bg-white text-black border-white"
-                                                     : "bg-primary text-primary-foreground border-primary")
-                        : "bg-transparent text-white/80 border-white/10 hover:bg-white/10"
-                    }`}
+                    className={`px-3 py-1.5 rounded-xl text-sm whitespace-nowrap border transition-colors ${activeCategory === c
+                      ? (c === "All"
+                        ? "bg-white text-black border-white"
+                        : "bg-primary text-primary-foreground border-primary")
+                      : "bg-transparent text-white/80 border-white/10 hover:bg-white/10"
+                      }`}
                   >
                     {c}
                   </button>
@@ -69,20 +79,20 @@ export default function DashboardPage() {
                   imageSrc="/minegame.png"
                   onClick={() => { setSelectedSection("games"); setActiveGame("mines"); }}
                 />
-                
+
                 <GameSlotCard
                   title="Paaji On Top"
                   provider=""
                   imageSrc="/paaji.png"
                   onClick={() => { setSelectedSection("games"); setActiveGame("paaji"); }}
                 />
-                 <GameSlotCard
+                <GameSlotCard
                   title="Cashout"
                   provider=""
                   imageSrc="/cashout.png"
                   onClick={() => { setSelectedSection("games"); setActiveGame("rugs"); }}
                 />
-                 <GameSlotCard
+                <GameSlotCard
                   title="Coinflip"
                   provider=""
                   imageSrc="/coinflip.png"
@@ -94,7 +104,7 @@ export default function DashboardPage() {
         </div>
       )
     }
-    
+
     if (selectedSection === "mines") {
       return <MinesGame />
     }
@@ -119,12 +129,12 @@ export default function DashboardPage() {
       if (!activeGame) return <GamePicker onPick={(g) => setActiveGame(g)} />
       if (activeGame === "mines") return <MinesGame onBack={() => setActiveGame(null)} />
       if (activeGame === "rugs") return (<>
-        {/* @ts-ignore - allow onBack prop for now */}
+        {/* @ts-expect-error - allow onBack prop for now */}
         <CrashGame onBack={() => setActiveGame(null)} />
       </>)
-      // @ts-ignore - allow onBack prop for now
+      // @ts-expect-error - allow onBack prop for now
       if (activeGame === "paaji") return <PaajiOnTop onBack={() => setActiveGame(null)} />
-      // @ts-ignore - allow onBack prop for now
+      // @ts-expect-error - allow onBack prop for now
       if (activeGame === "coinflip") return <Coinflip onBack={() => setActiveGame(null)} />
       return null
     }
@@ -136,7 +146,7 @@ export default function DashboardPage() {
           Coming soon: Trade on prediction markets and bet on real-world events
         </p>
 
-                  <div className="bg-transparent backdrop-blur-md border border-white/10 rounded-2xl p-8 max-w-lg shadow-2xl">
+        <div className="bg-transparent backdrop-blur-md border border-white/10 rounded-2xl p-8 max-w-lg shadow-2xl">
           <h3 className="text-white font-bold text-xl mb-6 flex items-center justify-center space-x-2">
             <span>🚀</span>
             <span>What&apos;s Coming:</span>
@@ -160,7 +170,7 @@ export default function DashboardPage() {
             </div>
           </div>
 
-                      <div className="mt-8 p-4 bg-red-600/20 rounded-xl border border-red-600/30">
+          <div className="mt-8 p-4 bg-red-600/20 rounded-xl border border-red-600/30">
             <p className="text-white/80 text-sm">
               Be the first to know when we launch! Join our waitlist for early access.
             </p>
@@ -178,8 +188,16 @@ export default function DashboardPage() {
     return null
   }
 
+  // // Show loading screen for 1 second
+  // if (isLoading) {
+  //   return <LoadingScreen />
+  // }
+
   return (
-    <div
+    
+    <>
+    <LoadingScreen />
+     <div
       className="min-h-screen w-full relative overflow-hidden pr-80"
       style={mode === "casino" ? { background: "linear-gradient(135deg, #0f0f23 0%, #1a1a2e 25%, #16213e 50%, #0f3460 75%, #533483 100%)" } : undefined}
     >
@@ -230,9 +248,10 @@ export default function DashboardPage() {
             )}
           </div>
 
-          {mode === "nearmarket" ?  <NearkMarketWork />: null}
+          {mode === "nearmarket" ? <NearkMarketWork /> : null}
         </div>
       </div>
     </div>
+    </>
   )
 }
