@@ -24,7 +24,7 @@ export default function GameSlotCard({ title, provider, imageSrc, highlighted = 
           <Heart className="h-4 w-4 text-white" fill="white" />
         </div>
       )}
-
+  
       {/* play button appears on hover */}
       <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
         <div className="h-12 w-12 rounded-full bg-white/20 backdrop-blur-md border border-white/30 flex items-center justify-center">
@@ -33,12 +33,12 @@ export default function GameSlotCard({ title, provider, imageSrc, highlighted = 
       </div>
 
       {/* bottom text */}
-      <div className="absolute bottom-0 left-0 right-0 p-3">
+      {/* <div className="absolute bottom-0 left-0 right-0 p-3">
         <div className="rounded-2xl px-3 py-2 bg-black/30 backdrop-blur-md border border-white/10">
           <div className="text-white font-extrabold leading-tight text-[15px] tracking-wide uppercase line-clamp-2">{title}</div>
           {provider && <div className="text-white/70 text-[11px] mt-0.5">{provider}</div>}
         </div>
-      </div>
+      </div> */}
 
       {/* subtle border glow */}
       <div className="pointer-events-none absolute inset-0 rounded-3xl ring-1 ring-white/10 group-hover:ring-white/20" />

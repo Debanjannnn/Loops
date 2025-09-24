@@ -163,6 +163,7 @@ export function PaajiOnTop({ rows = 8, cols = 4 }: PaajiOnTopProps) {
       console.error("Error starting game:", error)
       let errorMsg = "Error starting game. Please try again."
       
+      // @ts-ignore - best effort error message
       if (error.message?.includes("User closed the window")) {
         errorMsg = "Transaction cancelled. Please try again when ready."
       } else if (error.message?.includes("insufficient balance")) {
@@ -210,7 +211,7 @@ export function PaajiOnTop({ rows = 8, cols = 4 }: PaajiOnTopProps) {
         // Still show the cashout UI even if resolve_game fails
         setStatus("cashed-out")
         PaajiCashoutSound()
-        setSuccessMessage(`Cashed out at ${multiplier}×! (Note: Please try resolving manually from stats page)`)
+        setSuccessMessage(`Cashed out at ${multiplier}×! (Note: Please try resolving manually from stats page)`) 
       }
     }
   }
@@ -246,7 +247,8 @@ export function PaajiOnTop({ rows = 8, cols = 4 }: PaajiOnTopProps) {
           }
         } catch (error: any) {
           console.error("❌ Error calling resolve_game for win:", error)
-          setSuccessMessage(`You reached the top at ${multiplier}×! (Note: Please try resolving manually from stats page)`)
+          // @ts-ignore - best effort error message
+          setSuccessMessage(`You reached the top at ${multiplier}×! (Note: Please try resolving manually from stats page)`) 
         }
       } else {
         setCurrentRow(nextRow)
@@ -513,6 +515,7 @@ export function PaajiOnTop({ rows = 8, cols = 4 }: PaajiOnTopProps) {
                         numCols === 4 && "grid-cols-4",
                         numCols === 5 && "grid-cols-5",
                         numCols >= 6 && "grid-cols-6",
+                        isActive && "rounded-xl ring-1 ring-primary/30 bg-primary/5 p-2 transition-colors"
                       )}
                       aria-label={`Row ${logicalRow + 1}`}
                     >
@@ -532,7 +535,7 @@ export function PaajiOnTop({ rows = 8, cols = 4 }: PaajiOnTopProps) {
                             onClick={() => pickTile(logicalRow, col)}
                             className={cn(
                               "relative aspect-[2.1/1] w-full overflow-hidden rounded-xl border",
-                              "border-border bg-background/60",
+                              isActive ? "border-primary/40 bg-primary/10 hover:bg-primary/15" : "border-border bg-background/60 hover:bg-muted/60",
                             )}
                             aria-label={isActive ? `Pick tile ${col + 1} in row ${logicalRow + 1}` : `Tile ${col + 1}`}
                           >

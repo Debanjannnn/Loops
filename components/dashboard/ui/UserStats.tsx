@@ -220,6 +220,7 @@ export default function UserStats() {
       console.error("Error details:", error)
       
       // Handle specific error cases like in the betting interface
+      // @ts-ignore - best effort error message
       if (error.message?.includes("Contract method is not found")) {
         console.log("🔧 Contract method not found - setting default values")
         setErrorMessage("Contract not properly deployed. Please contact support.")
@@ -267,6 +268,7 @@ export default function UserStats() {
       console.error("❌ Error in fetchUserStats:", error)
       
       // Handle specific error cases like in the betting interface
+      // @ts-ignore - best effort error message
       if (error.message?.includes("Contract method is not found")) {
         console.log("🔧 Contract method not found - setting default values")
         setErrorMessage("Contract not properly deployed. Please contact support.")
@@ -363,6 +365,7 @@ export default function UserStats() {
       let errorMsg = "Error withdrawing winnings. Please try again."
       
       // Handle specific error cases like in the betting interface
+      // @ts-ignore - best effort error message
       if (error.message?.includes("Nothing to withdraw")) {
         errorMsg = "No winnings available to withdraw"
       } else if (error.message?.includes("User closed the window")) {
@@ -371,7 +374,8 @@ export default function UserStats() {
         errorMsg = "Insufficient contract balance for withdrawal"
       } else if (error.message?.includes("Contract method is not found")) {
         errorMsg = "Contract not properly deployed. Please contact support."
-      } else if (error.message) {
+      } else if (// @ts-ignore
+        error.message) {
         errorMsg = error.message
       }
       
@@ -586,6 +590,7 @@ export default function UserStats() {
                     borderRadius: '8px',
                     color: '#F9FAFB'
                   }}
+                  // @ts-ignore - recharts typing
                   formatter={(value: number) => [`${value}%`, 'Games']}
                 />
               </PieChart>

@@ -60,7 +60,7 @@ export default function AppSidebar() {
     >
       {/* Brand */}
       <div className="flex items-center gap-6 px-4 pt-7 pb-6">
-        <Image src="/mainlogo.png" alt="Koon logo" width={64} height={64} className="rounded-full border border-border object-cover" />
+        <Image src="/logogif.gif" alt="Koon logo" width={70} height={70} className="rounded-full  object-cover" />
         <div className="leading-tight">
           <div className="text-3xl md:text-4xl font-extrabold text-foreground text-pretty">Koon</div>
           <div className="text-[13px] tracking-[0.18em] text-foreground/60">@koondotfun</div>

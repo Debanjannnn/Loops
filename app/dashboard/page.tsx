@@ -7,6 +7,7 @@ import GameContainer from "@/components/dashboard/ui/GameContainer"
 import GamePicker from "@/components/dashboard/ui/GamePicker"
 import MinesGame from "@/components/games/mines/MinesGame"
 import CrashGame from "@/components/games/rugsfun/Rugs"
+import Coinflip from "@/components/games/Coinflip/Coinflip"
 import { Button } from "@/components/ui/button"
 import { ArrowLeft, Home, ChevronRight, TrendingUp, Gamepad2, Star, Users, DollarSign } from "lucide-react"
 import { useUI } from "@/contexts/UIContext"
@@ -17,10 +18,11 @@ import FeaturePills from "@/components/dashboard/ui/FeaturePills"
 import ChatSidebar from "@/components/dashboard/ui/ChatSidebar"
 import PaajiOnTop from "@/components/games/PaajiOnTop/Paaji"
 import UserStats from "@/components/dashboard/ui/UserStats"
+import NearkMarketWork from "@/components/dashboard/ui/nearkmarketwork"
 
 export default function DashboardPage() {
   const { selectedSection, setSelectedSection, mode } = useUI()
-  const [activeGame, setActiveGame] = useState<"rugs" | "mines" | "paaji" | null>(null)
+  const [activeGame, setActiveGame] = useState<"rugs" | "mines" | "paaji" | "coinflip" | null>(null)
   const [balance, setBalance] = useState<number>(1234.56)
   const [activeCategory, setActiveCategory] = useState<string>("All")
 
@@ -55,7 +57,7 @@ export default function DashboardPage() {
                 </div>
                 <div className="rounded-xl bg-white/5 border border-white/10 p-4">
                   <div className="text-white/60 text-sm">Top Game</div>
-                  <div className="text-white text-2xl font-bold mt-1">Mines</div>
+                  <div className="text-white/80 text-2xl font-medium mt-1">Mines</div>
                 </div>
                 <div className="rounded-xl bg-white/5 border border-white/10 p-4">
                   <div className="text-white/60 text-sm">Active Players</div>
@@ -74,8 +76,10 @@ export default function DashboardPage() {
                     onClick={() => setActiveCategory(c)}
                     className={`px-3 py-1.5 rounded-xl text-sm whitespace-nowrap border transition-colors ${
                       activeCategory === c
-                        ? "bg-[#ff6b35] text-white border-[#ff6b35]"
-                        : "bg-black/30 text-white/80 border-white/10 hover:bg-white/10"
+                        ? (c === "All"
+                          ? "bg-white text-black border-white"
+                                                     : "bg-primary text-primary-foreground border-primary")
+                        : "bg-transparent text-white/80 border-white/10 hover:bg-white/10"
                     }`}
                   >
                     {c}
@@ -93,17 +97,24 @@ export default function DashboardPage() {
                   imageSrc="/minegame.png"
                   onClick={() => { setSelectedSection("games"); setActiveGame("mines"); }}
                 />
-                <GameSlotCard
-                  title="Cashout"
-                  provider=""
-                  imageSrc="/cashout.png"
-                  onClick={() => { setSelectedSection("games"); setActiveGame("rugs"); }}
-                />
+                
                 <GameSlotCard
                   title="Paaji On Top"
                   provider=""
                   imageSrc="/paaji.png"
                   onClick={() => { setSelectedSection("games"); setActiveGame("paaji"); }}
+                />
+                 <GameSlotCard
+                  title="Cashout"
+                  provider=""
+                  imageSrc="/cashout.png"
+                  onClick={() => { setSelectedSection("games"); setActiveGame("rugs"); }}
+                />
+                 <GameSlotCard
+                  title="Coinflip"
+                  provider=""
+                  imageSrc="/coinflip.png"
+                  onClick={() => { setSelectedSection("games"); setActiveGame("coinflip"); }}
                 />
               </div>
             </div>
@@ -124,15 +135,25 @@ export default function DashboardPage() {
       return <PaajiOnTop />
     }
 
+    if (selectedSection === "coinflip") {
+      return <Coinflip />
+    }
+
     if (selectedSection === "stats") {
       return <UserStats />
     }
 
     if (selectedSection === "games") {
       if (!activeGame) return <GamePicker onPick={(g) => setActiveGame(g)} />
-      if (activeGame === "mines") return <MinesGame />
-      if (activeGame === "rugs") return <CrashGame />
-      if (activeGame === "paaji") return <PaajiOnTop />
+      if (activeGame === "mines") return <MinesGame onBack={() => setActiveGame(null)} />
+      if (activeGame === "rugs") return (<>
+        {/* @ts-ignore - allow onBack prop for now */}
+        <CrashGame onBack={() => setActiveGame(null)} />
+      </>)
+      // @ts-ignore - allow onBack prop for now
+      if (activeGame === "paaji") return <PaajiOnTop onBack={() => setActiveGame(null)} />
+      // @ts-ignore - allow onBack prop for now
+      if (activeGame === "coinflip") return <Coinflip onBack={() => setActiveGame(null)} />
       return null
     }
     return (
@@ -143,10 +164,10 @@ export default function DashboardPage() {
           Coming soon: Trade on prediction markets and bet on real-world events
         </p>
 
-        <div className="bg-black/30 backdrop-blur-md border border-white/10 rounded-2xl p-8 max-w-lg shadow-2xl">
+                  <div className="bg-transparent backdrop-blur-md border border-white/10 rounded-2xl p-8 max-w-lg shadow-2xl">
           <h3 className="text-white font-bold text-xl mb-6 flex items-center justify-center space-x-2">
             <span>🚀</span>
-            <span>What's Coming:</span>
+            <span>What&apos;s Coming:</span>
           </h3>
           <div className="space-y-4 text-left">
             <div className="flex items-center space-x-3 text-white/70">
@@ -181,6 +202,7 @@ export default function DashboardPage() {
     if (activeGame === "mines") return "Mines"
     if (activeGame === "rugs") return "Rugs (Crash)"
     if (activeGame === "paaji") return "Paaji On Top"
+    if (activeGame === "coinflip") return "Coinflip"
     return null
   }
 
@@ -212,12 +234,9 @@ export default function DashboardPage() {
   return (
     <div
       className="min-h-screen w-full relative overflow-hidden pr-80"
-      style={{
-        background: "linear-gradient(135deg, #0f0f23 0%, #1a1a2e 25%, #16213e 50%, #0f3460 75%, #533483 100%)",
-      }}
+      style={mode === "casino" ? { background: "linear-gradient(135deg, #0f0f23 0%, #1a1a2e 25%, #16213e 50%, #0f3460 75%, #533483 100%)" } : undefined}
     >
-      {/* Dark overlay for better contrast */}
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm"></div>
+      {mode === "casino" ? <div className="absolute inset-0 bg-black/40 backdrop-blur-sm"></div> : null}
 
       <ChatSidebar />
 
@@ -229,20 +248,11 @@ export default function DashboardPage() {
             <SidebarTabs />
           </div>
 
-          <div className="flex-1 flex flex-col m-0 p-0 px-3 sm:px-4 md:px-6 lg:px-8 bg-gray-800">
+          <div className={`flex-1 flex flex-col m-0 p-0 px-3 sm:px-4 md:px-6 lg:px-8 ${mode === "casino" ? "bg-gray-900" : ""}`}>
             {/* Breadcrumb and Back Button */}
             {mode === "casino" && selectedSection === "games" && activeGame && (
               <div className="mb-0 flex items-center justify-between py-3">
-                <Button
-                  variant="outline"
-                  onClick={() => setActiveGame(null)}
-                  className="border-white/20 text-white hover:bg-white/10 bg-black/30 backdrop-blur-sm px-6 py-3 rounded-xl font-medium m-0"
-                >
-                  <ArrowLeft className="w-4 h-4 mr-2" />
-                  Back to Games
-                </Button>
-
-                <div className="flex items-center space-x-2 text-white/60 bg-black/30 backdrop-blur-sm px-4 py-2 rounded-xl border border-white/10 m-0">
+                <div className="flex items-center space-x-2 text-white/60 bg-transparent backdrop-blur-sm px-4 py-2 rounded-xl border border-white/10 m-0">
                   <Home className="w-4 h-4" />
                   <span className="text-sm">Dashboard</span>
                   <ChevronRight className="w-3 h-3" />
@@ -250,6 +260,15 @@ export default function DashboardPage() {
                   <ChevronRight className="w-3 h-3" />
                   <span className="text-white text-sm font-medium">{getGameTitle()}</span>
                 </div>
+
+                <Button
+                  variant="outline"
+                  onClick={() => setActiveGame(null)}
+                  className="border-white/20 text-white hover:bg-white/10 bg-transparent backdrop-blur-sm px-6 py-3 rounded-xl font-medium m-0"
+                >
+                  <ArrowLeft className="w-4 h-4 mr-2" />
+                  Back to Games
+                </Button>
               </div>
             )}
 
@@ -264,7 +283,7 @@ export default function DashboardPage() {
             )}
           </div>
 
-          {mode === "nearmarket" ? <NearMarketPanel /> : null}
+          {mode === "nearmarket" ?  <NearkMarketWork />: null}
         </div>
       </div>
     </div>

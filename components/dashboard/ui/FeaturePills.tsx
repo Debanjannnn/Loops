@@ -8,10 +8,10 @@ interface PillItem {
 }
 
 const items: PillItem[] = [
-  { image: "/minegame.png", title: "Casino", subtitle: "All casino games" },
-  { image: "/trophy.png", title: "Sports", subtitle: "Betting and live betting" },
-  { image: "/cashout.png", title: "Bonuses", subtitle: "Many bonuses daily" },
-  { image: "/happypaaji.png", title: "Affiliates", subtitle: "Invite friends and earn" },
+  { image: "/tabimg3.png", title: "Casino", subtitle: "All casino games" },
+  { image: "/tabimg1.png", title: "Sports", subtitle: "Betting and live betting" },
+  { image: "/tabimg4.png", title: "Bonuses", subtitle: "Many bonuses daily" },
+  { image: "/tabimg2.png", title: "Affiliates", subtitle: "Invite friends and earn" },
 ]
 
 export default function FeaturePills() {
@@ -30,14 +30,14 @@ export default function FeaturePills() {
             <Image
               src={item.image}
               alt={item.title}
-              width={64}
-              height={64}
-              className="w-full h-full object-cover"
+              width={96}
+              height={96}
+              className="w-full h-full object-cover scale-150"
             />
           </div>
           <div className="relative">
-            <div className="text-white font-medium text-sm">{item.title}</div>
-            <div className="text-white/60 text-xs">{item.subtitle}</div>
+            <div className="text-white font-medium text-base">{item.title}</div>
+            <div className="text-white/60 text-sm">{item.subtitle}</div>
           </div>
         </div>
       ))}

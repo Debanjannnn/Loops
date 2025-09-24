@@ -26,9 +26,10 @@ interface PopupState {
 
 interface MinesGameProps {
   compact?: boolean
+  onBack?: () => void
 }
 
-export default function MinesGame({ compact = false }: MinesGameProps) {
+export default function MinesGame({ compact = false, onBack }: MinesGameProps) {
   const { selector, accountId, isConnected, getBalance } = useWallet()
   const [betAmount, setBetAmount] = useState("0.00")
   const [mineCount, setMineCount] = useState("3")
@@ -238,6 +239,7 @@ export default function MinesGame({ compact = false }: MinesGameProps) {
         console.error("❌ Error calling resolve_game:", error)
         // Still show the cashout UI even if resolve_game fails
         CashoutSound()
+        // @ts-ignore - best effort error message
         setSuccessMessage(`Cashed out at ${multiplier.toFixed(2)}×! (Note: ${error.message || 'Please try resolving manually from stats page'})`)
         setPopup({ isOpen: true, type: "gem", cellId: null })
         setIsPlaying(false)
@@ -272,12 +274,16 @@ export default function MinesGame({ compact = false }: MinesGameProps) {
         console.error("Error starting game:", error)
         let errorMsg = "Error starting game. Please try again."
         
+        // @ts-ignore - best effort error message
         if (error.message?.includes("User closed the window")) {
           errorMsg = "Transaction cancelled. Please try again when ready."
+        // @ts-ignore - best effort error message
         } else if (error.message?.includes("insufficient balance")) {
           errorMsg = "Insufficient balance. Please add more NEAR to your wallet."
+        // @ts-ignore - best effort error message
         } else if (error.message?.includes("already have a pending bet")) {
           errorMsg = "You already have a pending bet. Please wait for it to be resolved."
+        // @ts-ignore - best effort error message
         } else if (error.message) {
           errorMsg = error.message
         }
@@ -352,17 +358,17 @@ export default function MinesGame({ compact = false }: MinesGameProps) {
     <div className="mx-auto max-w-6xl w-full pt-4">
       <div className="grid grid-cols-1 lg:grid-cols-[300px_minmax(0,1fr)] gap-4">
         {/* Left control panel */}
-        <div className={`rounded-2xl border border-border bg-background/60 p-3 lg:p-4`}>
+        <div className={`rounded-2xl border border-border bg-background/40 p-3 lg:p-4`}>
           <div className="space-y-3">
             {/* Wallet Status */}
             {!isConnected ? (
-              <div className="bg-yellow-600/20 border border-yellow-500/30 rounded-4xl p-3 text-center">
+              <div className="bg-yellow-600/10 border border-yellow-500/20 rounded-4xl p-3 text-center">
                 <p className="text-yellow-400 text-sm font-medium">
                   🔗 Connect your wallet to start playing
                 </p>
               </div>
             ) : (
-              <div className="bg-green-600/20 border border-green-500/30 rounded-4xl p-3 text-center">
+              <div className="bg-green-600/10 border border-green-500/20 rounded-4xl p-3 text-center">
                 <p className="text-green-400 text-sm font-medium">
                   💰 Balance: {walletBalance} NEAR
                 </p>
@@ -374,7 +380,7 @@ export default function MinesGame({ compact = false }: MinesGameProps) {
 
             {/* Error Message */}
             {errorMessage && (
-              <div className="bg-red-600/20 border border-red-500/30 rounded-4xl p-3 text-center">
+              <div className="bg-red-600/10 border border-red-500/20 rounded-4xl p-3 text-center">
                 <p className="text-red-400 text-sm font-medium">
                   ⚠️ {errorMessage}
                 </p>
@@ -383,7 +389,7 @@ export default function MinesGame({ compact = false }: MinesGameProps) {
 
             {/* Success Message */}
             {successMessage && (
-              <div className="bg-green-600/20 border border-green-500/30 rounded-4xl p-3 text-center">
+              <div className="bg-green-600/10 border border-green-500/20 rounded-4xl p-3 text-center">
                 <p className="text-green-400 text-sm font-medium">
                   ✅ {successMessage}
                 </p>
@@ -392,7 +398,7 @@ export default function MinesGame({ compact = false }: MinesGameProps) {
 
             {/* Transaction Hash */}
             {transactionHash && (
-              <div className="bg-blue-600/20 border border-blue-500/30 rounded-4xl p-3 text-center">
+              <div className="bg-blue-600/10 border border-blue-500/20 rounded-4xl p-3 text-center">
                 <p className="text-blue-400 text-xs font-medium">
                   🔗 TX: {transactionHash.slice(0, 12)}...
                 </p>
@@ -520,7 +526,7 @@ export default function MinesGame({ compact = false }: MinesGameProps) {
             </div>
 
             {/* Status */}
-            <div className="rounded-xl border border-border bg-background/40 px-3 py-2 text-xs text-foreground/80">
+            <div className="rounded-xl border border-border bg-background/30 px-3 py-2 text-xs text-foreground/70">
               {!isPlaying && !gameOver && "Press Start Game to begin. Reveal safe gems to increase multiplier."}
               {isPlaying && !gameOver && "Game in progress. Click tiles to reveal. Cash out anytime."}
               {gameOver && totalProfit !== "0.00" && `You cashed out with ₹${totalProfit} at ${multiplier.toFixed(2)}×.`}
@@ -530,11 +536,11 @@ export default function MinesGame({ compact = false }: MinesGameProps) {
         </div>
 
         {/* Right board panel */}
-        <div className="relative rounded-2xl border border-border bg-background/60 p-3 lg:p-5">
+        <div className="relative rounded-2xl border border-border bg-background/40 p-3 lg:p-5">
           <div className="pointer-events-none absolute inset-0 rounded-2xl ring-1 ring-inset ring-border/40" />
 
           <div className={`mx-auto max-w-[900px]`}>
-            <div className="rounded-2xl border border-border bg-background/30 p-3 sm:p-4">
+            <div className="rounded-2xl border border-border bg-background/20 p-3 sm:p-4">
               <div className={`grid grid-cols-5 grid-rows-5 gap-3 w-full`}>
                 {grid.map((cell) => (
                   <Card
@@ -544,9 +550,9 @@ export default function MinesGame({ compact = false }: MinesGameProps) {
                       w-full aspect-square flex items-center justify-center cursor-pointer transition-all duration-200 border rounded-xl
                       ${cell.isRevealed
                         ? cell.isMine
-                          ? "bg-destructive/80 border-destructive/50"
-                          : "bg-primary/80 border-primary/50"
-                        : "border-border bg-background/60 hover:bg-muted"}
+                          ? "bg-destructive/60 border-destructive/40"
+                          : "bg-primary/60 border-primary/40"
+                        : "border-border bg-background/40 hover:bg-muted/60"}
                       ${!isPlaying || gameOver ? "cursor-not-allowed opacity-50" : ""}
                     `}
                   >
@@ -583,7 +589,7 @@ export default function MinesGame({ compact = false }: MinesGameProps) {
                     <div className="w-full h-64 bg-destructive/20 rounded-2xl flex items-center justify-center overflow-hidden">
                       <img src={loseImageSrc || "/placeholder.svg"} alt="Mine explosion" className="w-full h-full object-cover rounded-2xl opacity-80" />
                     </div>
-                    <h2 className="text-3xl font-extrabold tracking-wide uppercase text-destructive">BOOM! Mine Hit!</h2>
+                    <h2 className="text-3xl font-bold tracking-wide uppercase text-destructive/90">BOOM! Mine Hit!</h2>
                     <p className="text-foreground/70 text-base">{loseMessage}</p>
                   </>
                 ) : (
@@ -594,7 +600,7 @@ export default function MinesGame({ compact = false }: MinesGameProps) {
                     <div className="w-full h-64 bg-primary/20 rounded-2xl flex items-center justify-center overflow-hidden">
                       <img src="/nachoo.gif" alt="Successful cashout" className="w-full h-full object-contain rounded-2xl opacity-80" />
                     </div>
-                    <h2 className="text-3xl font-extrabold tracking-wide uppercase text-primary">Congratulations!</h2>
+                    <h2 className="text-3xl font-bold tracking-wide uppercase text-primary/90">Congratulations!</h2>
                     <p className="text-foreground/70 text-base">You cashed out with ₹{totalProfit} profit at {multiplier.toFixed(2)}× multiplier!</p>
                   </>
                 )}
