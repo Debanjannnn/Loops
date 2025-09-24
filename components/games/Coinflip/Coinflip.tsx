@@ -18,6 +18,8 @@ import {
   calculateMultiplier,
   calculatePayout,
 } from "@/lib/provablyFair"
+import { useWallet } from "@/contexts/WalletContext"
+import { ContractService } from "@/lib/contractService"
 
 type GameStatus = "idle" | "flipping" | "won" | "lost" | "streak-active"
 
@@ -35,6 +37,9 @@ type PopupState = {
 }
 
 export function CoinFlip({ compact = false }: CoinFlipProps) {
+  const { selector, accountId, isConnected } = useWallet()
+  const [contractService, setContractService] = React.useState<ContractService | null>(null)
+  const [isStaking, setIsStaking] = React.useState(false)
   // Game state
   const [status, setStatus] = React.useState<GameStatus>("idle")
   const [selectedSide, setSelectedSide] = React.useState<Side | null>(null)
@@ -49,6 +54,16 @@ export function CoinFlip({ compact = false }: CoinFlipProps) {
   const [clientSeed, setClientSeed] = React.useState<string>("")
   const [showServerSeed, setShowServerSeed] = React.useState(false)
   const [streakHistory, setStreakHistory] = React.useState<number[]>([])
+
+  // Initialize contract service when wallet is connected
+  React.useEffect(() => {
+    if (selector && accountId) {
+      const account = selector.store.getState().accounts[0]
+      if (account) {
+        setContractService(new ContractService(selector, account))
+      }
+    }
+  }, [selector, accountId])
 
   // Streak system
   const [currentStreak, setCurrentStreak] = React.useState(0)
@@ -68,7 +83,7 @@ export function CoinFlip({ compact = false }: CoinFlipProps) {
 
   // Sound effects
   const [BetSound] = useSound("/sounds/Bet.mp3")
-  const [paajiWinSound] = useSound("/sounds/PaajiWin.mp3")
+  const [paajiWinSound] = useSound("/sounds/Gems.mp3")
   const [CashoutSound] = useSound("/sounds/Cashout.mp3")
   const [BombSound] = useSound("/sounds/Bomb.mp3")
 
@@ -187,6 +202,29 @@ export function CoinFlip({ compact = false }: CoinFlipProps) {
     }, 2000)
   }
 
+  // Stake first, then play
+  const stakeAndPlay = async () => {
+    if (!selectedSide) return
+    const bet = Number.parseFloat(betAmount)
+    if (bet <= 0 || isNaN(bet)) return
+    if (!isConnected || !contractService) {
+      // If no wallet, just play locally as fallback
+      startGame()
+      return
+    }
+    try {
+      setIsStaking(true)
+      const gameId = `coinflip-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+      await contractService.startGame(gameId, betAmount, "coinflip")
+      // After staking successfully, start the flip
+      startGame()
+    } catch (err) {
+      console.error("Stake failed:", err)
+    } finally {
+      setIsStaking(false)
+    }
+  }
+
   const cashOut = () => {
     if (canCashOut && currentStreak > 0) {
       setStatus("won")
@@ -281,27 +319,15 @@ export function CoinFlip({ compact = false }: CoinFlipProps) {
     setBetAmount((current * factor).toFixed(2))
   }
 
-  const getCoinDisplay = () => {
-    if (isFlipping) {
-      return flipCount % 2 === 0 ? "heads" : "tails"
-    }
-    return result || "heads"
-  }
-
-  const getCoinImage = () => {
-    const display = getCoinDisplay()
-    return display === "heads" ? "/coin-head.png" : "/coin-tails.png"
-  }
-
   const getFlipAnimation = () => {
     if (!isFlipping) return ""
-    return "coin-flipping"
+    return "flip-3d"
   }
 
   const getCoinRotation = () => {
     if (isFlipping) return ""
     if (!result) return ""
-    return result === "tails" ? "transform: rotateY(180deg)" : ""
+    return result === "tails" ? "rotateY(180deg)" : "rotateY(0deg)"
   }
 
   const winRate = calculateWinRate(gameStats)
@@ -322,38 +348,6 @@ export function CoinFlip({ compact = false }: CoinFlipProps) {
                 Win Rate: {winRate.toFixed(1)}% | RTP: {rtp.toFixed(1)}%
               </p>
             </div>
-
-            {/* Provably Fair Info */}
-            {gameSession && (
-              <div className="bg-purple-600/20 border border-purple-500/30 rounded-4xl p-3 text-center">
-                <p className="text-purple-400 text-xs font-medium mb-2">🔒 Provably Fair</p>
-                <div className="space-y-1">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-purple-300">Server Seed:</span>
-                    <button
-                      onClick={() => setShowServerSeed(!showServerSeed)}
-                      className="text-purple-400 hover:text-purple-300"
-                    >
-                      {showServerSeed ? <EyeOff size={12} /> : <Eye size={12} />}
-                    </button>
-                  </div>
-                  <p className="text-purple-300 text-xs font-mono break-all">
-                    {showServerSeed ? gameSession.serverSeed : gameSession.serverSeedHash}
-                  </p>
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-purple-300">Client Seed:</span>
-                    <button
-                      onClick={() => copyToClipboard(gameSession.clientSeed)}
-                      className="text-purple-400 hover:text-purple-300"
-                    >
-                      <Copy size={12} />
-                    </button>
-                  </div>
-                  <p className="text-purple-300 text-xs font-mono">{gameSession.clientSeed}</p>
-                  <p className="text-purple-300 text-xs">Nonce: {gameSession.nonce}</p>
-                </div>
-              </div>
-            )}
 
             {/* Client Seed Input */}
             <div>
@@ -409,7 +403,7 @@ export function CoinFlip({ compact = false }: CoinFlipProps) {
                 {["heads", "tails"].map((side) => (
                   <button
                     key={side}
-                    onClick={() => startGame(side as Side)}
+                    onClick={() => setSelectedSide(side as Side)}
                     className={cn(
                       "rounded-xl border px-3 py-2 text-sm capitalize",
                       selectedSide === side
@@ -428,18 +422,31 @@ export function CoinFlip({ compact = false }: CoinFlipProps) {
             {/* Game Controls */}
             <div className="pt-1 space-y-2">
               {status === "streak-active" && !gameEnded ? (
-                <Button className="w-full h-10 rounded-xl bg-green-600 hover:bg-green-700" onClick={cashOut}>
-                  Cash Out
-                </Button>
+                <div className="grid grid-cols-2 gap-2">
+                  <Button
+                    className="h-10 rounded-xl"
+                    onClick={stakeAndPlay}
+                    disabled={!selectedSide || isStaking}
+                  >
+                    Stake
+                  </Button>
+                  <Button className="h-10 rounded-xl bg-green-600 hover:bg-green-700" onClick={cashOut}>
+                    Cash Out
+                  </Button>
+                </div>
               ) : gameEnded ? (
-                <Button className="w-full h-10 rounded-xl" onClick={() => startGame()} disabled={!selectedSide}>
-                  🎯 New Game
+                <Button className="w-full h-10 rounded-xl" onClick={stakeAndPlay} disabled={!selectedSide || isStaking}>
+                  🎯 Stake & Play
                 </Button>
               ) : status === "flipping" ? (
                 <Button variant="ghost" className="w-full h-10 rounded-xl" disabled>
                   Flipping...
                 </Button>
-              ) : null}
+              ) : (
+                <Button className="w-full h-10 rounded-xl" onClick={stakeAndPlay} disabled={!selectedSide || isStaking}>
+                  {isStaking ? "Staking..." : "Stake"}
+                </Button>
+              )}
             </div>
 
             {/* Current Multiplier & Payout */}
@@ -467,18 +474,22 @@ export function CoinFlip({ compact = false }: CoinFlipProps) {
         </div>
 
         {/* Right game panel */}
-        <div className="relative rounded-2xl border border-border bg-background/60 p-3 lg:p-5">
-          <div className="pointer-events-none absolute inset-0 rounded-2xl ring-1 ring-inset ring-border/40" />
+        <div className="relative rounded-2xl bg-background/60 p-3 lg:p-5">
+          
 
           <div className="flex flex-col items-center justify-center h-full min-h-[400px] space-y-6">
             <div className="coin-flip-container">
-              <div
-                className={cn("coin", getFlipAnimation())}
-                style={!isFlipping ? { transform: getCoinRotation() } : undefined}
-              >
-                {/* Show only the current face based on result or flipping state */}
-                <div className="coin-face">
-                  <img src={getCoinImage()} alt={getCoinDisplay()} />
+              <div className="coin-stage">
+                <div
+                  className={cn("coin-3d", getFlipAnimation())}
+                  style={!isFlipping ? { transform: getCoinRotation() } : undefined}
+                >
+                  <div className="coin-face coin-front">
+                    <img src="/coin-head.png" alt="heads" />
+                  </div>
+                  <div className="coin-face coin-back">
+                    <img src="/coin-tails.png" alt="tails" />
+                  </div>
                 </div>
               </div>
 
@@ -528,41 +539,56 @@ export function CoinFlip({ compact = false }: CoinFlipProps) {
 
             {/* Side Selection Visual */}
             {!isFlipping && !result && status !== "streak-active" && (
-              <div className="flex gap-4">
-                {["heads", "tails"].map((side) => (
-                  <button
-                    key={side}
-                    onClick={() => startGame(side as Side)}
-                    className={cn(
-                      "px-6 py-3 rounded-xl border-2 text-lg font-semibold capitalize transition-all",
-                      selectedSide === side
-                        ? "border-primary bg-primary text-primary-foreground"
-                        : "border-border text-foreground/60 hover:border-primary/50 hover:text-foreground",
-                    )}
-                  >
-                    {side}
-                  </button>
-                ))}
+              <div className="flex flex-col items-center gap-4">
+                <div className="flex gap-4">
+                  {["heads", "tails"].map((side) => (
+                    <button
+                      key={side}
+                      onClick={() => setSelectedSide(side as Side)}
+                      className={cn(
+                        "px-6 py-3 rounded-xl border-2 text-lg font-semibold capitalize transition-all",
+                        selectedSide === side
+                          ? "border-primary bg-primary text-primary-foreground"
+                          : "border-border text-foreground/60 hover:border-primary/50 hover:text-foreground",
+                      )}
+                    >
+                      {side}
+                    </button>
+                  ))}
+                </div>
+                <Button className="min-w-[160px]" onClick={stakeAndPlay} disabled={!selectedSide || isStaking}>
+                  {isStaking ? "Staking..." : "Stake"}
+                </Button>
               </div>
             )}
 
             {/* Side Selection for Streak Active State */}
             {status === "streak-active" && !gameEnded && !isFlipping && (
-              <div className="flex gap-4">
-                {["heads", "tails"].map((side) => (
-                  <button
-                    key={side}
-                    onClick={() => startGame(side as Side)}
-                    className={cn(
-                      "px-6 py-3 rounded-xl border-2 text-lg font-semibold capitalize transition-all",
-                      selectedSide === side
-                        ? "border-primary bg-primary text-primary-foreground"
-                        : "border-border text-foreground/60 hover:border-primary/50 hover:text-foreground",
-                    )}
-                  >
-                    {side}
-                  </button>
-                ))}
+              <div className="flex flex-col items-center gap-4">
+                <div className="flex gap-4">
+                  {["heads", "tails"].map((side) => (
+                    <button
+                      key={side}
+                      onClick={() => setSelectedSide(side as Side)}
+                      className={cn(
+                        "px-6 py-3 rounded-xl border-2 text-lg font-semibold capitalize transition-all",
+                        selectedSide === side
+                          ? "border-primary bg-primary text-primary-foreground"
+                          : "border-border text-foreground/60 hover:border-primary/50 hover:text-foreground",
+                      )}
+                    >
+                      {side}
+                    </button>
+                  ))}
+                </div>
+                <div className="flex gap-3">
+                  <Button className="min-w-[140px]" onClick={stakeAndPlay} disabled={!selectedSide || isStaking}>
+                    {isStaking ? "Staking..." : "Stake"}
+                  </Button>
+                  <Button variant="secondary" className="min-w-[140px]" onClick={cashOut}>
+                    Cash Out
+                  </Button>
+                </div>
               </div>
             )}
 
@@ -667,6 +693,62 @@ export function CoinFlip({ compact = false }: CoinFlipProps) {
           </div>
         )}
       </div>
+
+      <style jsx>{`
+        .coin-flip-container {
+          position: relative;
+          width: 520px;
+          height: 520px;
+        }
+        .coin-stage {
+          position: relative;
+          width: 100%;
+          height: 100%;
+          perspective: 1000px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        .coin-3d {
+          position: relative;
+          width: 500px;
+          height: 500px;
+          transform-style: preserve-3d;
+          transition: transform 800ms cubic-bezier(0.2, 0.6, 0.2, 1);
+        }
+        .coin-face {
+          position: absolute;
+          inset: 0;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          backface-visibility: hidden;
+          border-radius: 50%;
+          overflow: hidden;
+          box-shadow: none;
+        }
+        .coin-face img {
+          width: 100%;
+          height: 100%;
+          object-fit: contain;
+        }
+        .coin-front {
+          transform: rotateY(0deg) translateZ(1px);
+        }
+        .coin-back {
+          transform: rotateY(180deg) translateZ(1px);
+        }
+        @keyframes coinFlip3D {
+          0% { transform: rotateY(0deg) rotateX(0deg); }
+          25% { transform: rotateY(180deg) rotateX(15deg); }
+          50% { transform: rotateY(360deg) rotateX(0deg); }
+          75% { transform: rotateY(540deg) rotateX(-15deg); }
+          100% { transform: rotateY(720deg) rotateX(0deg); }
+        }
+        .flip-3d {
+          animation: coinFlip3D 2000ms cubic-bezier(0.2, 0.6, 0.2, 1);
+        }
+      `}</style>
     </div>
   )
 }

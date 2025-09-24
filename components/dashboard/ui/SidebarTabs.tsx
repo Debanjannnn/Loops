@@ -37,6 +37,7 @@ const primaryNav: NavItem[] = [
   { label: "Mine", href: "/mines", icon: Bomb, key: "mines" },
   { label: "Cashout", href: "/rugsfun", icon: Rocket, key: "rugs" },
   { label: "Paaji On Top", href: "/paaji", icon: Rocket, key: "paaji" },
+  { label: "Coinflip", href: "/coinflip", icon: Rocket, key: "coinflip" },
   { label: "Statistics", href: "/stats", icon: BarChart3, key: "stats" },
 ]
 
