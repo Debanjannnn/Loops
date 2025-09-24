@@ -199,7 +199,10 @@ export default function MinesGame({ compact = false, onBack }: MinesGameProps) {
       setGameOver(true)
       setIsPlaying(false)
       setTotalProfit("0.00")
-      setErrorMessage("Game lost! Oracle will resolve the bet automatically.")
+      
+      // Game lost - the resolver script will handle resolution
+      console.log("💥 User hit mine - game lost")
+      setErrorMessage("Game lost! The resolver will process this automatically.")
     } else {
       // Update multiplier based on per-reveal factor tied to mine count
       const mines = Number.parseInt(mineCount)
@@ -223,28 +226,14 @@ export default function MinesGame({ compact = false, onBack }: MinesGameProps) {
     }
 
     if (isPlaying) {
-      // User is cashing out - call resolve_game with the multiplier
-      try {
-        console.log("💰 User cashing out - calling resolve_game with multiplier:", multiplier)
-        
-        await contractService.resolveGame(multiplier)
-        console.log("✅ resolve_game called successfully")
-        
-        CashoutSound()
-        setSuccessMessage(`Cashed out at ${multiplier.toFixed(2)}×! Winnings have been credited to your account.`)
-        setPopup({ isOpen: true, type: "gem", cellId: null })
-        setIsPlaying(false)
-        setGameOver(true)
-      } catch (error: any) {
-        console.error("❌ Error calling resolve_game:", error)
-        // Still show the cashout UI even if resolve_game fails
-        CashoutSound()
-        // @ts-ignore - best effort error message
-        setSuccessMessage(`Cashed out at ${multiplier.toFixed(2)}×! (Note: ${error.message || 'Please try resolving manually from stats page'})`)
-        setPopup({ isOpen: true, type: "gem", cellId: null })
-        setIsPlaying(false)
-        setGameOver(true)
-      }
+      // User is cashing out - the resolver script will handle resolution
+      console.log("💰 User cashing out at multiplier:", multiplier)
+      
+      CashoutSound()
+      setSuccessMessage(`Cashed out at ${multiplier.toFixed(2)}×! Game will be resolved automatically by the resolver.`)
+      setPopup({ isOpen: true, type: "gem", cellId: null })
+      setIsPlaying(false)
+      setGameOver(true)
     } else {
       // Start new game - validate bet amount first
       const bet = Number.parseFloat(betAmount)
@@ -263,7 +252,7 @@ export default function MinesGame({ compact = false, onBack }: MinesGameProps) {
         const newGameId = `mines-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
         setGameId(newGameId)
         
-        const hash = await contractService.startGame(newGameId, betAmount)
+        const hash = await contractService.startGame(newGameId, betAmount, "mines")
         setTransactionHash(hash)
         setSuccessMessage(`Game started! Transaction: ${hash.slice(0, 8)}...`)
         

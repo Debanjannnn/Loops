@@ -18,6 +18,7 @@ import {
   FileText,
   UsersRound,
   BarChart3,
+  Settings,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useUI } from "@/contexts/UIContext"
@@ -42,6 +43,7 @@ const primaryNav: NavItem[] = [
 const secondaryNav: NavItem[] = [
   { label: "Support", href: "/support", icon: HelpCircle, key: "support" },
   { label: "Affiliates", href: "/affiliates", icon: UsersRound, key: "affiliates" },
+  { label: "Admin", href: "/admin", icon: Settings, key: "admin" },
 ]
 
 export default function AppSidebar() {

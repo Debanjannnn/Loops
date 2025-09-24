@@ -31,6 +31,7 @@ import {
   Calendar,
   RefreshCw
 } from "lucide-react"
+import GameResolver from "@/components/games/GameResolver"
 
 interface GameStats {
   gameType: string
@@ -41,6 +42,7 @@ interface GameStats {
   avgMultiplier: number
   bestMultiplier: number
   totalGames: number
+  gamesWon: number
 }
 
 interface UserStats {
@@ -49,9 +51,12 @@ interface UserStats {
   totalLost: string
   withdrawableBalance: string
   gamesPlayed: number
+  gamesWon: number
   winRate: number
   favoriteGame: string
   joinDate: string
+  lastPlayDate: string
+  gameTypeStats: GameStats[]
 }
 
 interface ChartData {
@@ -82,6 +87,7 @@ export default function UserStats() {
   const [walletBalance, setWalletBalance] = useState<string>("0")
   const [errorMessage, setErrorMessage] = useState<string>("")
   const [successMessage, setSuccessMessage] = useState<string>("")
+  const [isNetworkError, setIsNetworkError] = useState<boolean>(false)
   const [transactionHash, setTransactionHash] = useState<string>("")
 
   // Initialize contract service when wallet is connected
@@ -151,80 +157,115 @@ export default function UserStats() {
     console.log("🔄 Fetching contract data for account:", accountId)
     
     try {
-      // Fetch user stats from contract using the same approach as the betting interface
-      console.log("📡 Calling contractService.getUserStats...")
-      const contractStats = await contractService.getUserStats(accountId)
-      console.log("📊 Raw contract stats received:", contractStats)
+      // Fetch comprehensive user stats from contract
+      console.log("📡 Calling contractService.getUserComprehensiveStats...")
+      const comprehensiveStats = await contractService.getUserComprehensiveStats(accountId)
+      console.log("📊 Raw comprehensive stats received:", comprehensiveStats)
       
-      if (contractStats) {
-        console.log("✅ Contract stats found, processing data...")
-        console.log("Raw totalBet:", contractStats.totalBet)
-        console.log("Raw totalWon:", contractStats.totalWon)
-        console.log("Raw totalLost:", contractStats.totalLost)
-        console.log("Raw withdrawableBalance:", contractStats.withdrawableBalance)
+      if (comprehensiveStats) {
+        console.log("✅ Comprehensive stats found, processing data...")
         
         // Convert contract data to our format - handle both string and number formats
-        const totalBetValue = typeof contractStats.totalBet === 'string' 
-          ? contractStats.totalBet 
-          : contractStats.totalBet.toString()
-        const totalWonValue = typeof contractStats.totalWon === 'string' 
-          ? contractStats.totalWon 
-          : contractStats.totalWon.toString()
-        const totalLostValue = typeof contractStats.totalLost === 'string' 
-          ? contractStats.totalLost 
-          : contractStats.totalLost.toString()
-        const withdrawableValue = typeof contractStats.withdrawableBalance === 'string' 
-          ? contractStats.withdrawableBalance 
-          : contractStats.withdrawableBalance.toString()
+        const totalBetValue = typeof comprehensiveStats.totalBet === 'string' 
+          ? comprehensiveStats.totalBet 
+          : comprehensiveStats.totalBet.toString()
+        const totalWonValue = typeof comprehensiveStats.totalWon === 'string' 
+          ? comprehensiveStats.totalWon 
+          : comprehensiveStats.totalWon.toString()
+        const totalLostValue = typeof comprehensiveStats.totalLost === 'string' 
+          ? comprehensiveStats.totalLost 
+          : comprehensiveStats.totalLost.toString()
+        const withdrawableValue = typeof comprehensiveStats.withdrawableBalance === 'string' 
+          ? comprehensiveStats.withdrawableBalance 
+          : comprehensiveStats.withdrawableBalance.toString()
         
         const realUserStats: UserStats = {
           totalBet: (parseFloat(totalBetValue) / 1e24).toFixed(2), // Convert from yoctoNEAR
           totalWon: (parseFloat(totalWonValue) / 1e24).toFixed(2),
           totalLost: (parseFloat(totalLostValue) / 1e24).toFixed(2),
           withdrawableBalance: (parseFloat(withdrawableValue) / 1e24).toFixed(2),
-          gamesPlayed: 0, // This would need to be tracked separately in contract
-          winRate: parseFloat(totalBetValue) > 0 ? 
-            (parseFloat(totalWonValue) / parseFloat(totalBetValue)) * 100 : 0,
-          favoriteGame: "N/A", // This would need to be tracked separately in contract
-          joinDate: "N/A" // This would need to be tracked separately in contract
+          gamesPlayed: comprehensiveStats.gamesPlayed || 0,
+          gamesWon: comprehensiveStats.gamesWon || 0,
+          winRate: comprehensiveStats.winRate || 0,
+          favoriteGame: comprehensiveStats.favoriteGame || "N/A",
+          joinDate: comprehensiveStats.joinDate ? new Date(Number(comprehensiveStats.joinDate) * 1000).toISOString() : "N/A",
+          lastPlayDate: comprehensiveStats.lastPlayDate ? new Date(Number(comprehensiveStats.lastPlayDate) * 1000).toISOString() : "N/A",
+          gameTypeStats: comprehensiveStats.gameTypeStats || []
         }
         
         console.log("🎯 Processed user stats:", realUserStats)
         setUserStats(realUserStats)
+
+        // Process game type stats for charts and tables
+        const processedGameStats: GameStats[] = comprehensiveStats.gameTypeStats?.map((gameTypeStat: any) => ({
+          gameType: gameTypeStat.gameType,
+          totalBets: parseFloat(gameTypeStat.totalBets.toString()) / 1e24,
+          totalWon: parseFloat(gameTypeStat.totalWon.toString()) / 1e24,
+          totalLost: parseFloat(gameTypeStat.totalLost.toString()) / 1e24,
+          winRate: gameTypeStat.gamesPlayed > 0 ? (gameTypeStat.gamesWon / gameTypeStat.gamesPlayed) * 100 : 0,
+          avgMultiplier: gameTypeStat.gamesPlayed > 0 ? gameTypeStat.totalMultiplier / gameTypeStat.gamesPlayed : 0,
+          bestMultiplier: gameTypeStat.bestMultiplier || 0,
+          totalGames: gameTypeStat.gamesPlayed || 0,
+          gamesWon: gameTypeStat.gamesWon || 0
+        })) || []
+
+        console.log("🎮 Processed game stats:", processedGameStats)
+        setGameStats(processedGameStats)
+
+        // Create game distribution data for pie chart
+        const gameDistributionData: GameDistribution[] = processedGameStats.map((game, index) => ({
+          name: game.gameType,
+          value: game.totalGames,
+          color: COLORS[index % COLORS.length]
+        }))
+
+        console.log("📊 Game distribution data:", gameDistributionData)
+        setGameDistribution(gameDistributionData)
+
+        // For now, we'll show empty chart data since we don't have historical data
+        // In a real implementation, you'd want to add methods to track game history by date
+        console.log("📈 Setting empty chart data (no historical data in contract)")
+        setChartData([])
+        
       } else {
-        console.log("❌ No contract stats found for user - setting default values")
-        // No stats found, use default values like in the betting interface
+        console.log("❌ No comprehensive stats found for user - setting default values")
+        // No stats found, use default values
         const defaultStats: UserStats = {
           totalBet: "0.00",
           totalWon: "0.00",
           totalLost: "0.00",
           withdrawableBalance: "0.00",
           gamesPlayed: 0,
+          gamesWon: 0,
           winRate: 0,
           favoriteGame: "N/A",
-          joinDate: "N/A"
+          joinDate: "N/A",
+          lastPlayDate: "N/A",
+          gameTypeStats: []
         }
         console.log("🔧 Setting default stats:", defaultStats)
         setUserStats(defaultStats)
+        setGameStats([])
+        setChartData([])
+        setGameDistribution([])
       }
-
-      // For now, we'll show empty charts since we don't have historical data in the contract
-      // In a real implementation, you'd want to add methods to track game history
-      console.log("📈 Setting empty chart data (no historical data in contract)")
-      setGameStats([])
-      setChartData([])
-      setGameDistribution([])
       
     } catch (error: any) {
       console.error("❌ Error fetching contract data:", error)
       console.error("Error details:", error)
       
-      // Handle specific error cases like in the betting interface
-      // @ts-ignore - best effort error message
-      if (error.message?.includes("Contract method is not found")) {
+      // Check if it's a network error
+      if (error.message?.includes('All RPC endpoints failed') || 
+          error.message?.includes('Network error') ||
+          error.message?.includes('Failed to fetch')) {
+        setIsNetworkError(true)
+        setErrorMessage("Network connection issue. Please check your internet connection and try again.")
+      } else if (error.message?.includes("Contract method is not found")) {
         console.log("🔧 Contract method not found - setting default values")
+        setIsNetworkError(false)
         setErrorMessage("Contract not properly deployed. Please contact support.")
       } else {
+        setIsNetworkError(false)
         setErrorMessage("Failed to fetch user statistics")
       }
       
@@ -235,9 +276,12 @@ export default function UserStats() {
         totalLost: "0.00",
         withdrawableBalance: "0.00",
         gamesPlayed: 0,
+        gamesWon: 0,
         winRate: 0,
         favoriteGame: "N/A",
-        joinDate: "N/A"
+        joinDate: "N/A",
+        lastPlayDate: "N/A",
+        gameTypeStats: []
       }
       console.log("🔧 Setting error fallback stats:", errorStats)
       setUserStats(errorStats)
@@ -280,9 +324,12 @@ export default function UserStats() {
           totalLost: "0.00",
           withdrawableBalance: "0.00",
           gamesPlayed: 0,
+          gamesWon: 0,
           winRate: 0,
           favoriteGame: "N/A",
-          joinDate: "N/A"
+          joinDate: "N/A",
+          lastPlayDate: "N/A",
+          gameTypeStats: []
         }
         setUserStats(defaultStats)
         setGameStats([])
@@ -436,10 +483,22 @@ export default function UserStats() {
 
       {/* Error Message */}
       {errorMessage && (
-        <div className="bg-red-600/20 border border-red-500/30 rounded-2xl p-4">
-          <p className="text-red-400 text-sm font-medium">
-            ⚠️ {errorMessage}
-          </p>
+        <div className={`${isNetworkError ? 'bg-yellow-600/20 border-yellow-500/30' : 'bg-red-600/20 border-red-500/30'} border rounded-2xl p-4`}>
+          <div className="flex items-center gap-3">
+            <div className="text-2xl">
+              {isNetworkError ? '🌐' : '⚠️'}
+            </div>
+            <div>
+              <p className={`${isNetworkError ? 'text-yellow-400' : 'text-red-400'} text-sm font-medium`}>
+                {errorMessage}
+              </p>
+              {isNetworkError && (
+                <p className="text-yellow-300 text-xs mt-1">
+                  The app will automatically retry when the connection is restored.
+                </p>
+              )}
+            </div>
+          </div>
         </div>
       )}
 
@@ -506,6 +565,9 @@ export default function UserStats() {
             <div>
               <p className="text-sm text-muted-foreground">Games Played</p>
               <p className="text-2xl font-bold text-white">{userStats?.gamesPlayed || 0}</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                {userStats?.gamesWon || 0} wins
+              </p>
             </div>
             <Gamepad2 className="h-8 w-8 text-orange-500" />
           </div>
@@ -657,7 +719,7 @@ export default function UserStats() {
       </Card>
 
       {/* Additional Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="bg-background/60 border-border p-6">
           <div className="flex items-center justify-between">
             <div>
@@ -708,7 +770,34 @@ export default function UserStats() {
             <Calendar className="h-8 w-8 text-purple-500" />
           </div>
         </Card>
+
+        <Card className="bg-background/60 border-border p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-muted-foreground">Last Played</p>
+              <p className="text-lg font-bold text-white">{userStats?.lastPlayDate ? formatDate(userStats.lastPlayDate) : "N/A"}</p>
+            </div>
+            <Calendar className="h-8 w-8 text-blue-500" />
+          </div>
+        </Card>
       </div>
+
+      {/* Withdrawal Information */}
+      <Card className="bg-background/60 border-border p-6">
+        <h3 className="text-lg font-semibold text-white mb-4">💰 Withdraw Your Winnings</h3>
+        <p className="text-white/70 text-sm mb-4">
+          All your winnings are automatically processed by our resolver system. Use the withdraw button above to transfer your winnings to your wallet.
+        </p>
+        <div className="bg-blue-600/20 border border-blue-500/30 rounded-xl p-4">
+          <h4 className="text-blue-400 font-medium mb-2">How it works:</h4>
+          <ul className="text-blue-300 text-sm space-y-1">
+            <li>• Play games and win - your winnings are tracked on-chain</li>
+            <li>• Our automated resolver processes all game outcomes</li>
+            <li>• Withdraw your accumulated winnings anytime</li>
+            <li>• All transactions are secure and transparent</li>
+          </ul>
+        </div>
+      </Card>
     </div>
   )
 }

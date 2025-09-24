@@ -149,7 +149,7 @@ export function PaajiOnTop({ rows = 8, cols = 4 }: PaajiOnTopProps) {
       const newGameId = `paaji-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
       setGameId(newGameId)
       
-      const hash = await contractService.startGame(newGameId, betAmount)
+      const hash = await contractService.startGame(newGameId, betAmount, "paaji")
       setTransactionHash(hash)
       setSuccessMessage(`Game started! Transaction: ${hash.slice(0, 8)}...`)
       
@@ -192,26 +192,16 @@ export function PaajiOnTop({ rows = 8, cols = 4 }: PaajiOnTopProps) {
     if (status === "in-progress") {
       // User is cashing out - call resolve_game with the multiplier
       try {
-        console.log("💰 User cashing out - calling resolve_game with multiplier:", multiplier)
-        if (contractService) {
-          await contractService.resolveGame(parseFloat(multiplier))
-          console.log("✅ resolve_game called successfully")
-          
-          setStatus("cashed-out")
-          PaajiCashoutSound()
-          setSuccessMessage(`Cashed out at ${multiplier}×! Winnings have been credited to your account.`)
-        } else {
-          // Fallback if no contract service
-          setStatus("cashed-out")
-          PaajiCashoutSound()
-          setSuccessMessage(`Cashed out at ${multiplier}×! (Note: Please try resolving manually from stats page)`)
-        }
-      } catch (error: any) {
-        console.error("❌ Error calling resolve_game:", error)
-        // Still show the cashout UI even if resolve_game fails
+        console.log("💰 User cashing out with multiplier:", multiplier)
+        
         setStatus("cashed-out")
         PaajiCashoutSound()
-        setSuccessMessage(`Cashed out at ${multiplier}×! (Note: Please try resolving manually from stats page)`) 
+        setSuccessMessage(`Cashed out at ${multiplier}×! The resolver will process your winnings automatically.`)
+      } catch (error: any) {
+        console.error("❌ Error in cashout:", error)
+        setStatus("cashed-out")
+        PaajiCashoutSound()
+        setSuccessMessage(`Cashed out at ${multiplier}×! The resolver will process your winnings automatically.`)
       }
     }
   }
@@ -237,26 +227,19 @@ export function PaajiOnTop({ rows = 8, cols = 4 }: PaajiOnTopProps) {
         setStatus("won")
         PaajiCashoutSound()
         
-        // User reached the top - automatically call resolve_game
-        try {
-          console.log("🏆 User reached the top - calling resolve_game with multiplier:", multiplier)
-          if (contractService) {
-            await contractService.resolveGame(parseFloat(multiplier))
-            console.log("✅ resolve_game called successfully for win")
-            setSuccessMessage(`You reached the top at ${multiplier}×! Winnings have been credited to your account.`)
-          }
-        } catch (error: any) {
-          console.error("❌ Error calling resolve_game for win:", error)
-          // @ts-ignore - best effort error message
-          setSuccessMessage(`You reached the top at ${multiplier}×! (Note: Please try resolving manually from stats page)`) 
-        }
+        // User reached the top - the resolver script will handle resolution
+        console.log("🏆 User reached the top with multiplier:", multiplier)
+        setSuccessMessage(`You reached the top at ${multiplier}×! The resolver will process your winnings automatically.`)
       } else {
         setCurrentRow(nextRow)
       }
     } else {
       setStatus("lost")
       PaajiLoseSound()
-      setErrorMessage("Game lost! No winnings to resolve.")
+      
+      // Game lost - the resolver script will handle resolution
+      console.log("💥 User hit wrong tile - game lost")
+      setErrorMessage("Game lost! The resolver will process this automatically.")
     }
   }
 

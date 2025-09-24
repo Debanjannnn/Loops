@@ -130,32 +130,61 @@ export function WalletProvider({ children }: WalletProviderProps) {
         return (parseInt((accountState as any).balance) / 1e24).toFixed(4)
       }
 
-      // Fallback: Fetch balance directly from NEAR RPC
-      try {
-        const response = await fetch('https://rpc.testnet.near.org', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            jsonrpc: '2.0',
-            id: 'dontcare',
-            method: 'query',
-            params: {
-              request_type: 'view_account',
-              finality: 'final',
-              account_id: accountId,
-            },
-          }),
-        })
+      // Fallback: Fetch balance directly from NEAR RPC with multiple endpoints
+      const rpcEndpoints = [
+        'https://rpc.testnet.near.org',
+        'https://near-testnet.api.pagoda.co/rpc/v1',
+        'https://testnet-rpc.near.org'
+      ]
 
-        const data = await response.json()
-        if (data.result && data.result.amount) {
-          return (parseInt(data.result.amount) / 1e24).toFixed(4)
+      for (const endpoint of rpcEndpoints) {
+        try {
+          console.log(`🔄 Trying RPC endpoint: ${endpoint}`)
+          
+          const controller = new AbortController()
+          const timeoutId = setTimeout(() => controller.abort(), 10000) // 10 second timeout
+          
+          const response = await fetch(endpoint, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              jsonrpc: '2.0',
+              id: 'dontcare',
+              method: 'query',
+              params: {
+                request_type: 'view_account',
+                finality: 'final',
+                account_id: accountId,
+              },
+            }),
+            signal: controller.signal
+          })
+
+          clearTimeout(timeoutId)
+
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+          }
+
+          const data = await response.json()
+          
+          if (data.error) {
+            throw new Error(`RPC Error: ${data.error.message || 'Unknown error'}`)
+          }
+          
+          if (data.result && data.result.amount) {
+            console.log(`✅ Balance fetched successfully from ${endpoint}`)
+            return (parseInt(data.result.amount) / 1e24).toFixed(4)
+          }
+        } catch (rpcError: any) {
+          console.warn(`❌ RPC endpoint ${endpoint} failed:`, rpcError.message)
+          // Continue to next endpoint
         }
-      } catch (rpcError) {
-        console.error('RPC balance fetch failed:', rpcError)
       }
+      
+      console.error('🚨 All RPC endpoints failed to fetch balance')
 
       return '0.0000'
     } catch (error) {

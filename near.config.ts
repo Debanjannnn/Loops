@@ -7,8 +7,8 @@ import { setupMeteorWallet } from "@near-wallet-selector/meteor-wallet";
 import { setupNightly } from "@near-wallet-selector/nightly";
 
 // Contract configuration
-// TODO: Deploy contract to this account or change to your deployed contract
-export const CONTRACT_ID = "game-program.testnet";
+// Updated contract with comprehensive user statistics
+export const CONTRACT_ID = "game-program-v2.testnet";
 export const NETWORK = "testnet";
 
 // Initialize wallet selector
@@ -20,7 +20,7 @@ export const initWalletSelector = async () => {
       setupSender(),
       setupHereWallet(),
       setupMeteorWallet(),
-      setupNightly(),
+      setupNightl y(),
     ],
   });
 
