@@ -25,6 +25,7 @@ export default function LoadingScreen({ className = "" }: LoadingScreenProps) {
                     fill
                     className="object-contain"
                     priority
+                    unoptimized
                 />
             </div>
         </div>
