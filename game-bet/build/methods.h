@@ -1,6 +1,0 @@
-DEFINE_NEAR_METHOD(BettingContract)
-DEFINE_NEAR_METHOD(get_contract_total_losses)
-DEFINE_NEAR_METHOD(get_total_users)
-DEFINE_NEAR_METHOD(get_user_stats)
-DEFINE_NEAR_METHOD(place_bet)
-DEFINE_NEAR_METHOD(withdraw)
