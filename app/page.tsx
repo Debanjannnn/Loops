@@ -18,9 +18,11 @@ import ChatSidebar from "@/components/dashboard/ui/ChatSidebar"
 import PaajiOnTop from "@/components/games/PaajiOnTop/Paaji"
 import UserStats from "@/components/dashboard/ui/UserStats"
 import NearkMarketWork from "@/components/dashboard/ui/nearkmarketwork"
+import { useRouter } from "next/navigation"
 
 export default function DashboardPage() {
   const { selectedSection, setSelectedSection, mode } = useUI()
+  const router = useRouter()
   const [activeGame, setActiveGame] = useState<"rugs" | "mines" | "paaji" | "coinflip" | null>(null)
   const [balance, setBalance] = useState<number>(1234.56)
   const [activeCategory, setActiveCategory] = useState<string>("All")
@@ -208,7 +210,7 @@ export default function DashboardPage() {
 
                 <Button
                   variant="outline"
-                  onClick={() => { setActiveGame(null); setSelectedSection("home"); }}
+                  onClick={() => router.push("/")}
                   className="border-white/20 text-white hover:bg-white/10 bg-transparent backdrop-blur-sm px-6 py-3 rounded-xl font-medium m-0"
                 >
                   <ArrowLeft className="w-4 h-4 mr-2" />
