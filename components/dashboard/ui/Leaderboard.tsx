@@ -43,7 +43,28 @@ interface ProcessedLeaderboardUser {
   lastPlayDate: string
   rank: number
 }
+async function submitUserData(data: string) {
+  try {
+    const response = await fetch('/api/golem', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        accountId: data
+      }),
+    });
 
+    if (!response.ok) {
+      throw new Error('Failed to submit user data');
+    }
+
+    const result = await response.json();
+    console.log('User data submitted to GolemDB:', result);
+  } catch (error) {
+    console.error('Error submitting user data:', error);
+  }
+}
 const getRankIcon = (rank: number) => {
   switch (rank) {
     case 1:
@@ -114,6 +135,7 @@ export default function Leaderboard() {
       const userStatsPromises = validAccountIds.map(async (accountId: string) => {
         try {
           const stats = await getUserStats(accountId)
+          submitUserData(accountId)
           if (stats && stats.gamesPlayed > 0) { // Only include users who have played games
             return {
               accountId,

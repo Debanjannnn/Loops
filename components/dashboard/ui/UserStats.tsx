@@ -8,13 +8,13 @@ import { useWallet } from "@/contexts/WalletContext"
 import { useContract } from "@/contexts/ContractProvider"
 import { formatNEAR, formatNEARWithConversion, getConversionText } from "@/lib/currencyUtils"
 import { useLiveConversion } from "@/lib/useCurrencyRates"
-import { 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
   ResponsiveContainer,
   LineChart,
   Line,
@@ -24,12 +24,12 @@ import {
   Area,
   AreaChart
 } from "recharts"
-import { 
-  TrendingUp, 
-  TrendingDown, 
-  DollarSign, 
-  Gamepad2, 
-  Trophy, 
+import {
+  TrendingUp,
+  TrendingDown,
+  DollarSign,
+  Gamepad2,
+  Trophy,
   Target,
   Calendar,
   RefreshCw,
@@ -94,7 +94,7 @@ const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8']
 
 export default function UserStats() {
   const { selector, accountId, isConnected, getBalance, refreshBalance, isBalanceLoading } = useWallet()
-  const { getUserStats, withdraw: contractWithdraw} = useContract()
+  const { getUserStats, withdraw: contractWithdraw } = useContract()
   console.log("accountId:", accountId)
   const [contractService, setContractService] = useState<ContractService | null>(null)
   const [userStats, setUserStats] = useState<UserStats | null>(null)
@@ -103,7 +103,7 @@ export default function UserStats() {
   const [gameDistribution, setGameDistribution] = useState<GameDistribution[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [walletBalance, setWalletBalance] = useState<string>("0")
-  
+
   // Live conversion rates for main stats
   const totalBetConversion = useLiveConversion(userStats?.totalBet || "0")
   const totalWonConversion = useLiveConversion(userStats?.totalWon || "0")
@@ -113,19 +113,24 @@ export default function UserStats() {
   const [isNetworkError, setIsNetworkError] = useState<boolean>(false)
   const [transactionHash, setTransactionHash] = useState<string>("")
 
+  
+
   useEffect(() => {
     const fetchUserData = async () => {
-      
+
       if (accountId) {
         console.log("🔄 Fetching user data for:", accountId)
         const contractStats = await getUserStats(accountId)
         console.log("📊 Received contract stats:", contractStats)
         
+
+
+
         if (contractStats) {
           // Generate fake dates for display purposes
           const fakeJoinDate = new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000) // Random date within last 30 days
           const fakeLastPlayDate = new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000) // Random date within last 7 days
-          
+
           // Convert contract data to our expected format
           const processedStats: UserStats = {
             totalBet: (parseFloat(contractStats.totalBet.toString()) / 1e24).toFixed(2),
@@ -140,7 +145,7 @@ export default function UserStats() {
             lastPlayDate: fakeLastPlayDate.toISOString(),
             gameTypeStats: [] // Will be populated separately if needed
           }
-          
+
           console.log("✅ Processed user stats:", processedStats)
           setUserStats(processedStats)
         } else {
@@ -171,11 +176,11 @@ export default function UserStats() {
     console.log("🔗 Wallet connection effect triggered")
     console.log("selector:", selector)
     console.log("accountId:", accountId)
-    
+
     if (selector && accountId) {
       const account = selector.store.getState().accounts[0]
       console.log("📱 Account from selector:", account)
-      
+
       if (account) {
         const newContractService = new ContractService(selector, account)
         console.log("✅ ContractService created:", newContractService)
@@ -200,7 +205,7 @@ export default function UserStats() {
         }
       }
     }
-    
+
     fetchBalance()
     const interval = setInterval(fetchBalance, 30000)
     return () => clearInterval(interval)
@@ -224,7 +229,7 @@ export default function UserStats() {
           // Generate fake dates for display purposes
           const fakeJoinDate = new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000) // Random date within last 30 days
           const fakeLastPlayDate = new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000) // Random date within last 7 days
-          
+
           const processedStats: UserStats = {
             totalBet: (parseFloat(contractStats.totalBet.toString()) / 1e24).toFixed(2),
             totalWon: (parseFloat(contractStats.totalWon.toString()) / 1e24).toFixed(2),
@@ -264,9 +269,9 @@ export default function UserStats() {
   // Simplified data fetching using ContractProvider
   const fetchUserStats = async () => {
     console.log("🚀 fetchUserStats called")
-      console.log("accountId:", accountId)
+    console.log("accountId:", accountId)
     console.log("getUserStats function:", getUserStats)
-    
+
     if (!accountId) {
       console.log("❌ Cannot fetch stats - missing accountId")
       return
@@ -275,16 +280,16 @@ export default function UserStats() {
     console.log("✅ Starting to fetch user stats...")
     setIsLoading(true)
     clearMessages() // Clear any existing messages
-    
+
     try {
       const contractStats = await getUserStats(accountId)
       console.log("📊 Raw contract stats received:", contractStats)
-      
+
       if (contractStats) {
         // Generate fake dates for display purposes
         const fakeJoinDate = new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000) // Random date within last 30 days
         const fakeLastPlayDate = new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000) // Random date within last 7 days
-        
+
         // Convert contract data to our expected format
         const processedStats: UserStats = {
           totalBet: (parseFloat(contractStats.totalBet.toString()) / 1e24).toFixed(2),
@@ -299,10 +304,10 @@ export default function UserStats() {
           lastPlayDate: fakeLastPlayDate.toISOString(),
           gameTypeStats: [] // Will be populated separately if needed
         }
-        
+
         console.log("✅ Processed user stats:", processedStats)
         setUserStats(processedStats)
-        
+
         // Set empty game stats for now (can be populated later if needed)
         setGameStats([])
         setChartData([])
@@ -330,8 +335,8 @@ export default function UserStats() {
       }
     } catch (error: any) {
       console.error("❌ Error in fetchUserStats:", error)
-        setErrorMessage("Failed to fetch user statistics")
-      
+      setErrorMessage("Failed to fetch user statistics")
+
       // Set empty data on error
       const errorStats: UserStats = {
         totalBet: "0.00",
@@ -362,7 +367,7 @@ export default function UserStats() {
     console.log("isConnected:", isConnected)
     console.log("accountId:", accountId)
     console.log("getUserStats:", getUserStats)
-    
+
     if (isConnected && accountId) {
       console.log("✅ Wallet is connected, fetching user stats...")
       fetchUserStats()
@@ -397,18 +402,18 @@ export default function UserStats() {
 
     setIsLoading(true)
     clearMessages() // Clear any existing messages
-    
+
     try {
       console.log("💰 Starting withdrawal process...")
       console.log(`💸 Withdrawing ${formatNEAR(withdrawableAmount.toString())} NEAR`)
-      
+
       // Use the ContractProvider withdraw function
       const hash = await contractWithdraw()
       console.log("✅ Withdrawal transaction successful:", hash)
-      
+
       setSuccessMessage(`🎉 Withdrawal successful! ${formatNEAR(withdrawableAmount.toString())} NEAR has been sent to your wallet.`)
       setTransactionHash(hash)
-      
+
       // Refresh stats and balance after successful withdrawal
       setTimeout(async () => {
         console.log("🔄 Refreshing stats and balance after withdrawal...")
@@ -417,11 +422,11 @@ export default function UserStats() {
           refreshBalance()
         ])
       }, 3000) // Wait for the transaction to be processed
-      
+
     } catch (error: any) {
       console.error("❌ Error withdrawing:", error)
       let errorMsg = "Error withdrawing winnings. Please try again."
-      
+
       // Handle specific error cases
       if (error.message?.includes("Nothing to withdraw")) {
         errorMsg = "No winnings available to withdraw"
@@ -436,7 +441,7 @@ export default function UserStats() {
       } else if (error.message) {
         errorMsg = error.message
       }
-      
+
       setErrorMessage(errorMsg)
     } finally {
       setIsLoading(false)
@@ -468,8 +473,8 @@ export default function UserStats() {
           <h1 className="text-3xl font-bold text-white mb-2">Your Statistics</h1>
           <p className="text-white/70">Track your gaming performance and earnings from the blockchain</p>
         </div>
-        <Button 
-          onClick={fetchUserStats} 
+        <Button
+          onClick={fetchUserStats}
           disabled={isLoading}
           className="bg-primary hover:bg-primary/90"
         >
@@ -508,7 +513,7 @@ export default function UserStats() {
               <p className="text-yellow-300 text-sm mb-3">
                 You have <span className="font-bold text-yellow-200">{formatNEAR(userStats.withdrawableBalance)} NEAR</span> ready to withdraw
               </p>
-              <Button 
+              <Button
                 onClick={handleWithdraw}
                 disabled={isLoading}
                 className="bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white font-bold py-3 px-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50"
@@ -566,7 +571,7 @@ export default function UserStats() {
           <p className="text-blue-400 text-xs font-medium">
             🔗 TX: {transactionHash.slice(0, 12)}...
           </p>
-          <a 
+          <a
             href={`https://explorer.testnet.near.org/transactions/${transactionHash}`}
             target="_blank"
             rel="noopener noreferrer"
@@ -642,32 +647,32 @@ export default function UserStats() {
             <ResponsiveContainer width="100%" height={300}>
               <AreaChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                <XAxis 
-                  dataKey="date" 
+                <XAxis
+                  dataKey="date"
                   stroke="#9CA3AF"
                   fontSize={12}
                   tickFormatter={(value) => new Date(value).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                 />
                 <YAxis stroke="#9CA3AF" fontSize={12} />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: '#1F2937', 
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: '#1F2937',
                     border: '1px solid #374151',
                     borderRadius: '8px',
                     color: '#F9FAFB'
                   }}
-                  labelFormatter={(value) => new Date(value).toLocaleDateString('en-US', { 
-                    year: 'numeric', 
-                    month: 'long', 
-                    day: 'numeric' 
+                  labelFormatter={(value) => new Date(value).toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
                   })}
                   formatter={(value: number) => [`${formatNEAR(value.toString())} NEAR`, 'Profit/Loss']}
                 />
-                <Area 
-                  type="monotone" 
-                  dataKey="profit" 
-                  stroke="#10B981" 
-                  fill="#10B981" 
+                <Area
+                  type="monotone"
+                  dataKey="profit"
+                  stroke="#10B981"
+                  fill="#10B981"
                   fillOpacity={0.3}
                   strokeWidth={2}
                 />
@@ -704,9 +709,9 @@ export default function UserStats() {
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
                 </Pie>
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: '#1F2937', 
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: '#1F2937',
                     border: '1px solid #374151',
                     borderRadius: '8px',
                     color: '#F9FAFB'
@@ -750,11 +755,10 @@ export default function UserStats() {
                     <td className="py-3 px-4 text-white font-medium">{game.gameType}</td>
                     <td className="py-3 px-4 text-white">{game.totalGames}</td>
                     <td className="py-3 px-4">
-                      <span className={`${
-                        game.winRate >= 60 ? 'bg-green-500/20 text-green-400' : 
-                        game.winRate >= 40 ? 'bg-yellow-500/20 text-yellow-400' : 
-                        'bg-red-500/20 text-red-400'
-                      } px-2 py-1 rounded-full text-xs font-medium`}>
+                      <span className={`${game.winRate >= 60 ? 'bg-green-500/20 text-green-400' :
+                        game.winRate >= 40 ? 'bg-yellow-500/20 text-yellow-400' :
+                          'bg-red-500/20 text-red-400'
+                        } px-2 py-1 rounded-full text-xs font-medium`}>
                         {game.winRate}%
                       </span>
                     </td>
@@ -791,7 +795,7 @@ export default function UserStats() {
               </p>
               {userStats && parseFloat(userStats.withdrawableBalance) > 0 ? (
                 <div className="mt-3">
-                  <Button 
+                  <Button
                     onClick={handleWithdraw}
                     disabled={isLoading}
                     className="h-10 w-full text-sm bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 disabled:opacity-50 font-semibold shadow-lg hover:shadow-xl transition-all duration-200"
