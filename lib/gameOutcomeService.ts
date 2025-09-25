@@ -29,7 +29,7 @@ class GameOutcomeService {
                             window.location.hostname.includes('vercel.app') ||
                             window.location.hostname.includes('koondotfun.vercel.app');
         
-        const apiEndpoint = isProduction ? '/api/resolve-game' : '/api/resolve-game';
+        const apiEndpoint = isProduction ? '/api/resolve-game-production' : '/api/resolve-game';
       
       console.log(`🔧 Using ${isProduction ? 'production' : 'development'} resolver: ${apiEndpoint}`);
       
