@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Koon.fun",
-  description: "Onchain gamified betting platform",
+  description: "CONNECT. WIN. REPEAT.",
 };
 
 export default function RootLayout({
