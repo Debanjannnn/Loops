@@ -1,4 +1,5 @@
 DEFINE_NEAR_METHOD(SecureGames)
+DEFINE_NEAR_METHOD(get_all_users)
 DEFINE_NEAR_METHOD(get_contract_stats)
 DEFINE_NEAR_METHOD(get_game_details)
 DEFINE_NEAR_METHOD(get_pending_games)

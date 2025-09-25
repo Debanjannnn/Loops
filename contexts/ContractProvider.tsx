@@ -17,6 +17,22 @@ export const ContractProvider = ({ children }: { children: React.ReactNode }) =>
   const { viewFunction } = useWalletSelector();
   const { selector, accountId } = useWallet();
 
+  const getAllUsers = async() =>{
+    try {
+      const users = await viewFunction({
+        contractId: CONTRACT_ID,
+        method: "get_all_users",
+        args: {},
+      })
+      console.log("Users:", users);
+      return users;
+    } catch (error) {
+      console.error("Failed to fetch users:", error);
+      return [];
+    }
+  }
+  
+
   const getUserStats = async (accountId: string) => {
     try {
       const stats = await viewFunction({
@@ -72,7 +88,7 @@ export const ContractProvider = ({ children }: { children: React.ReactNode }) =>
   };
 
   return (
-    <ContractContext.Provider value={{ getUserStats, withdraw }}>
+    <ContractContext.Provider value={{ getUserStats, withdraw, getAllUsers }}>
       {children}
     </ContractContext.Provider>
   );

@@ -3207,7 +3207,7 @@ function NearBindgen({
   };
 }
 
-var _dec, _dec2, _dec3, _dec4, _dec5, _dec6, _dec7, _dec8, _dec9, _dec10, _dec11, _class, _class2;
+var _dec, _dec2, _dec3, _dec4, _dec5, _dec6, _dec7, _dec8, _dec9, _dec10, _dec11, _dec12, _class, _class2;
 
 // --------------------
 // Data models
@@ -3221,12 +3221,14 @@ class UserStats {
   gamesWon = 0;
   joinDate = BigInt(0);
   lastPlayDate = BigInt(0);
+  lastPlayTimestamp = BigInt(0);
 }
 class GameTypeStats {
   gameType = "";
   totalBets = BigInt(0);
   totalWon = BigInt(0);
   totalLost = BigInt(0);
+  timestamp = BigInt(0); //
   gamesPlayed = 0;
   gamesWon = 0;
   bestMultiplierPercent = 0; // integer percent, e.g., 150 = 1.5x
@@ -3262,7 +3264,7 @@ class Game {
 // --------------------
 let SecureGames = (_dec = NearBindgen({}), _dec2 = initialize(), _dec3 = call({
   payableFunction: true
-}), _dec4 = call({}), _dec5 = call({}), _dec6 = view(), _dec7 = view(), _dec8 = view(), _dec9 = view(), _dec10 = view(), _dec11 = view(), _dec(_class = (_class2 = class SecureGames {
+}), _dec4 = call({}), _dec5 = call({}), _dec6 = view(), _dec7 = view(), _dec8 = view(), _dec9 = view(), _dec10 = view(), _dec11 = view(), _dec12 = view(), _dec(_class = (_class2 = class SecureGames {
   // account allowed to resolve games
 
   // storage maps (flat keys)
@@ -3477,6 +3479,15 @@ let SecureGames = (_dec = NearBindgen({}), _dec2 = initialize(), _dec3 = call({
     }
     return out;
   }
+  get_all_users({
+    start = 0,
+    limit = 50
+  }) {
+    return this.users.keys({
+      start,
+      limit
+    });
+  }
   get_contract_stats() {
     let totalBets = BigInt(0);
     let totalWinnings = BigInt(0);
@@ -3501,7 +3512,7 @@ let SecureGames = (_dec = NearBindgen({}), _dec2 = initialize(), _dec3 = call({
       totalGames: totalGames
     };
   }
-}, _applyDecoratedDescriptor(_class2.prototype, "init", [_dec2], Object.getOwnPropertyDescriptor(_class2.prototype, "init"), _class2.prototype), _applyDecoratedDescriptor(_class2.prototype, "start_game", [_dec3], Object.getOwnPropertyDescriptor(_class2.prototype, "start_game"), _class2.prototype), _applyDecoratedDescriptor(_class2.prototype, "resolve_game", [_dec4], Object.getOwnPropertyDescriptor(_class2.prototype, "resolve_game"), _class2.prototype), _applyDecoratedDescriptor(_class2.prototype, "withdraw", [_dec5], Object.getOwnPropertyDescriptor(_class2.prototype, "withdraw"), _class2.prototype), _applyDecoratedDescriptor(_class2.prototype, "get_user_stats", [_dec6], Object.getOwnPropertyDescriptor(_class2.prototype, "get_user_stats"), _class2.prototype), _applyDecoratedDescriptor(_class2.prototype, "get_user_game_stats", [_dec7], Object.getOwnPropertyDescriptor(_class2.prototype, "get_user_game_stats"), _class2.prototype), _applyDecoratedDescriptor(_class2.prototype, "get_game_details", [_dec8], Object.getOwnPropertyDescriptor(_class2.prototype, "get_game_details"), _class2.prototype), _applyDecoratedDescriptor(_class2.prototype, "get_resolver_account", [_dec9], Object.getOwnPropertyDescriptor(_class2.prototype, "get_resolver_account"), _class2.prototype), _applyDecoratedDescriptor(_class2.prototype, "get_pending_games", [_dec10], Object.getOwnPropertyDescriptor(_class2.prototype, "get_pending_games"), _class2.prototype), _applyDecoratedDescriptor(_class2.prototype, "get_contract_stats", [_dec11], Object.getOwnPropertyDescriptor(_class2.prototype, "get_contract_stats"), _class2.prototype), _class2)) || _class);
+}, _applyDecoratedDescriptor(_class2.prototype, "init", [_dec2], Object.getOwnPropertyDescriptor(_class2.prototype, "init"), _class2.prototype), _applyDecoratedDescriptor(_class2.prototype, "start_game", [_dec3], Object.getOwnPropertyDescriptor(_class2.prototype, "start_game"), _class2.prototype), _applyDecoratedDescriptor(_class2.prototype, "resolve_game", [_dec4], Object.getOwnPropertyDescriptor(_class2.prototype, "resolve_game"), _class2.prototype), _applyDecoratedDescriptor(_class2.prototype, "withdraw", [_dec5], Object.getOwnPropertyDescriptor(_class2.prototype, "withdraw"), _class2.prototype), _applyDecoratedDescriptor(_class2.prototype, "get_user_stats", [_dec6], Object.getOwnPropertyDescriptor(_class2.prototype, "get_user_stats"), _class2.prototype), _applyDecoratedDescriptor(_class2.prototype, "get_user_game_stats", [_dec7], Object.getOwnPropertyDescriptor(_class2.prototype, "get_user_game_stats"), _class2.prototype), _applyDecoratedDescriptor(_class2.prototype, "get_game_details", [_dec8], Object.getOwnPropertyDescriptor(_class2.prototype, "get_game_details"), _class2.prototype), _applyDecoratedDescriptor(_class2.prototype, "get_resolver_account", [_dec9], Object.getOwnPropertyDescriptor(_class2.prototype, "get_resolver_account"), _class2.prototype), _applyDecoratedDescriptor(_class2.prototype, "get_pending_games", [_dec10], Object.getOwnPropertyDescriptor(_class2.prototype, "get_pending_games"), _class2.prototype), _applyDecoratedDescriptor(_class2.prototype, "get_all_users", [_dec11], Object.getOwnPropertyDescriptor(_class2.prototype, "get_all_users"), _class2.prototype), _applyDecoratedDescriptor(_class2.prototype, "get_contract_stats", [_dec12], Object.getOwnPropertyDescriptor(_class2.prototype, "get_contract_stats"), _class2.prototype), _class2)) || _class);
 function get_contract_stats() {
   const _state = SecureGames._getState();
   if (!_state && SecureGames._requireInit()) {
@@ -3513,6 +3524,19 @@ function get_contract_stats() {
   }
   const _args = SecureGames._getArgs();
   const _result = _contract.get_contract_stats(_args);
+  if (_result !== undefined) if (_result && _result.constructor && _result.constructor.name === "NearPromise") _result.onReturn();else env.value_return(SecureGames._serialize(_result, true));
+}
+function get_all_users() {
+  const _state = SecureGames._getState();
+  if (!_state && SecureGames._requireInit()) {
+    throw new Error("Contract must be initialized");
+  }
+  const _contract = SecureGames._create();
+  if (_state) {
+    SecureGames._reconstruct(_contract, _state);
+  }
+  const _args = SecureGames._getArgs();
+  const _result = _contract.get_all_users(_args);
   if (_result !== undefined) if (_result && _result.constructor && _result.constructor.name === "NearPromise") _result.onReturn();else env.value_return(SecureGames._serialize(_result, true));
 }
 function get_pending_games() {
@@ -3634,5 +3658,5 @@ function init() {
   if (_result !== undefined) if (_result && _result.constructor && _result.constructor.name === "NearPromise") _result.onReturn();else env.value_return(SecureGames._serialize(_result, true));
 }
 
-export { SecureGames, get_contract_stats, get_game_details, get_pending_games, get_resolver_account, get_user_game_stats, get_user_stats, init, resolve_game, start_game, withdraw };
+export { SecureGames, get_all_users, get_contract_stats, get_game_details, get_pending_games, get_resolver_account, get_user_game_stats, get_user_stats, init, resolve_game, start_game, withdraw };
 //# sourceMappingURL=hello_near.js.map

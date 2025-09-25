@@ -114,6 +114,7 @@ export default function UserStats() {
 
   useEffect(() => {
     const fetchUserData = async () => {
+      await getAllUse
       if (accountId) {
         console.log("🔄 Fetching user data for:", accountId)
         const contractStats = await getUserStats(accountId)

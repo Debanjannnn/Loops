@@ -294,6 +294,11 @@ export class SecureGames {
     }
     return out;
   }
+  @view({})
+get_all_users({ start = 0, limit = 50 }: { start?: number; limit?: number }): string[] {
+  return this.users.keys({ start, limit });
+}
+
 
   @view({})
   get_contract_stats(): any {
