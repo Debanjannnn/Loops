@@ -11,7 +11,7 @@ CONTRACT_ID=game-v0.testnet
 RESOLVER_ACCOUNT_ID=resolver-v0.testnet
 
 # Resolver Private Key (for automated game resolution)
-RESOLVER_PRIVATE_KEY=ed25519:4EfkzL95mEn3Jqy7hmR4Q6kxCXnLeDzwvYWm5PJjVoHDX2jAEu1EP6R5Bbqcj8Vr2xft9hG5t8pdWZmTZVTn5sW
+RESOLVER_PRIVATE_KEY="ed25519:4EfkzL95mEn3Jqy7hmR4Q6kxCXnLeDzwvYWm5PJjVoHDX2jAEu1EP6R5Bbqcj8Vr2xft9hG5t8pdWZmTZVTn5sW"
 
 # Optional: Custom RPC endpoint
 NEAR_RPC_URL=https://near-testnet.api.pagoda.co/rpc/v1
