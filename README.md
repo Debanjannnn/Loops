@@ -59,7 +59,7 @@ A revolutionary blockchain-based gaming platform built on NEAR Protocol featurin
 
 1. **Clone the repository**
 ```bash
-git clone https://github.com/your-username/kono.git
+git clone https://github.com/Debanjannnn/Loops kono
 cd kono
 ```
 
