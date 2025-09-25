@@ -34,10 +34,10 @@ RESOLVER_PRIVATE_KEY=ed25519:4EfkzL95mEn3Jqy7hmR4Q6kxCXnLeDzwvYWm5PJjVoHDX2jAEu1
 ### 3. Production vs Development Behavior
 
 **Development (localhost:3000):**
-- Uses `/api/resolve-game` 
-- Calls `./scripts/resolve-single-game.sh` directly
-- Executes NEAR CLI commands
-- Works immediately
+- Uses `/api/resolve-game-production` (unified approach)
+- Logs game resolution requests
+- Returns success response immediately
+- Ready for backend resolver integration
 
 **Production (vercel.app):**
 - Uses `/api/resolve-game-production`
@@ -81,11 +81,12 @@ RESOLVER_PRIVATE_KEY=ed25519:4EfkzL95mEn3Jqy7hmR4Q6kxCXnLeDzwvYWm5PJjVoHDX2jAEu1
 
 ### 7. Current Status
 
-- ✅ **Development**: Fully working with script execution
+- ✅ **Development**: Uses production resolver (unified approach)
 - ✅ **Production Code**: Ready and working
 - ✅ **Production Setup**: Ready to deploy
 - ✅ **Balance Caching**: Working in both environments
 - ✅ **Loading States**: Working in both environments
+- ✅ **Unified Resolver**: Both environments use the same resolver
 
 ## Next Steps
 

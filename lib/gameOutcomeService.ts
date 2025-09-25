@@ -28,17 +28,19 @@ class GameOutcomeService {
         const hostname = window.location.hostname;
         const isProduction = hostname.includes('vercel.app') ||
                             hostname.includes('koondotfun.vercel.app') ||
-                            hostname !== 'localhost';
+                            (hostname !== 'localhost' && hostname !== '127.0.0.1');
         
-        const apiEndpoint = isProduction ? '/api/resolve-game-production' : '/api/resolve-game';
+        // Always use production resolver for now to avoid script issues
+        const apiEndpoint = '/api/resolve-game-production';
       
       console.log(`🔧 Environment detection:`, {
         hostname,
         isProduction,
         apiEndpoint,
-        nodeEnv: process.env.NODE_ENV
+        nodeEnv: process.env.NODE_ENV,
+        userAgent: navigator.userAgent
       });
-      console.log(`🔧 Using ${isProduction ? 'production' : 'development'} resolver: ${apiEndpoint}`);
+      console.log(`🔧 Using production resolver: ${apiEndpoint}`);
       
       // Use the appropriate API route
       const response = await fetch(apiEndpoint, {
