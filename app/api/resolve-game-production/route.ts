@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Near, Account, KeyPair, keyStores, utils } from 'near-api-js';
+import { connect, keyStores, utils } from 'near-api-js';
 
 export async function POST(request: NextRequest) {
   try {
@@ -48,12 +48,12 @@ export async function POST(request: NextRequest) {
       try {
         console.log(`🔗 Trying RPC endpoint: ${nodeUrl}`);
         
-        // REAL BLOCKCHAIN TRANSACTION - Using proper near-api-js (HIGH LEVEL)
+        // REAL BLOCKCHAIN TRANSACTION - Using near-api-js HIGH LEVEL approach
         console.log(`🔗 Making REAL blockchain transaction for ${gameId}`);
         
         // Set up key store with private key (following official docs)
         const keyStore = new keyStores.InMemoryKeyStore();
-        const keyPair = KeyPair.fromString(RESOLVER_PRIVATE_KEY);
+        const keyPair = utils.KeyPairEd25519.fromString(RESOLVER_PRIVATE_KEY);
         
         // Add the key to keyStore (must be inside async function)
         await keyStore.setKey("testnet", RESOLVER_ACCOUNT_ID, keyPair);
@@ -69,10 +69,10 @@ export async function POST(request: NextRequest) {
         };
         
         // Connect to NEAR! :)
-        const near = new Near(config);
+        const near = await connect(config);
         
         // Create a NEAR account object
-        const senderAccount = new Account(near.connection, RESOLVER_ACCOUNT_ID);
+        const senderAccount = await near.account(RESOLVER_ACCOUNT_ID);
         
         // Check account balance first
         const balance = await senderAccount.getAccountBalance();
@@ -88,8 +88,8 @@ export async function POST(request: NextRequest) {
             didWin: didWin,
             multiplier: multiplier
           },
-          gas: "300000000000000",  // 300 TGas
-          attachedDeposit: "0",    // in yoctoNEAR
+          gas: BigInt("300000000000000"),  // 300 TGas
+          attachedDeposit: BigInt("0"),    // in yoctoNEAR
         });
         
         console.log(`✅ REAL blockchain transaction successful for ${gameId}`);
