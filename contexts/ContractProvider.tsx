@@ -9,6 +9,7 @@ const CONTRACT_ID = "game-v0.testnet";
 type ContractContextType = {
   getUserStats: (accountId: string) => Promise<any>;
   withdraw: () => Promise<string>;
+  getAllUsers: () => Promise<any[]>;
 };
 
 const ContractContext = createContext<ContractContextType | undefined>(undefined);
@@ -17,7 +18,7 @@ export const ContractProvider = ({ children }: { children: React.ReactNode }) =>
   const { viewFunction } = useWalletSelector();
   const { selector, accountId } = useWallet();
 
-  const getAllUsers = async() =>{
+  const getAllUsers = async(): Promise<any[]> => {
     try {
       const users = await viewFunction({
         contractId: CONTRACT_ID,
@@ -25,7 +26,7 @@ export const ContractProvider = ({ children }: { children: React.ReactNode }) =>
         args: {},
       })
       console.log("Users:", users);
-      return users;
+      return Array.isArray(users) ? users : [];
     } catch (error) {
       console.error("Failed to fetch users:", error);
       return [];

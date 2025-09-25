@@ -36,6 +36,7 @@ import {
   CloudCog
 } from "lucide-react"
 import GameResolver from "@/components/games/GameResolver"
+import Leaderboard from "./Leaderboard"
 
 interface GameStats {
   gameType: string
@@ -93,7 +94,7 @@ const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8']
 
 export default function UserStats() {
   const { selector, accountId, isConnected, getBalance, refreshBalance, isBalanceLoading } = useWallet()
-  const { getUserStats, withdraw: contractWithdraw } = useContract()
+  const { getUserStats, withdraw: contractWithdraw} = useContract()
   console.log("accountId:", accountId)
   const [contractService, setContractService] = useState<ContractService | null>(null)
   const [userStats, setUserStats] = useState<UserStats | null>(null)
@@ -114,7 +115,7 @@ export default function UserStats() {
 
   useEffect(() => {
     const fetchUserData = async () => {
-      await getAllUse
+      
       if (accountId) {
         console.log("🔄 Fetching user data for:", accountId)
         const contractStats = await getUserStats(accountId)
@@ -860,6 +861,11 @@ export default function UserStats() {
           </ul>
         </div>
       </Card>
+
+      {/* Leaderboard Section */}
+      <div className="mt-8">
+        <Leaderboard />
+      </div>
     </div>
   )
 }
