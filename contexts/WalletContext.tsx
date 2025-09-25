@@ -29,6 +29,7 @@ interface WalletContextType {
   isConnected: boolean;
   isLoading: boolean;
   balance: string;
+  isBalanceLoading: boolean;
   connect: () => void;
   disconnect: () => Promise<void>;
   getBalance: () => Promise<string>;
@@ -48,6 +49,7 @@ export function WalletProvider({ children }: WalletProviderProps) {
   const [accountId, setAccountId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [balance, setBalance] = useState<string>("0.00");
+  const [isBalanceLoading, setIsBalanceLoading] = useState(false);
 
   const getBalance = useCallback(async (): Promise<string> => {
     if (!selector || !accountId) {
@@ -160,16 +162,21 @@ export function WalletProvider({ children }: WalletProviderProps) {
     if (!accountId) {
       console.log("🔍 refreshBalance: No accountId, setting balance to 0.00");
       setBalance("0.00");
+      setIsBalanceLoading(false);
       return;
     }
     
     try {
       console.log("🔍 refreshBalance: Fetching new balance...");
+      setIsBalanceLoading(true);
       const newBalance = await getBalance();
       console.log("🔍 refreshBalance: Setting balance to:", newBalance);
       setBalance(newBalance);
     } catch (err) {
       console.error("❌ Failed to refresh balance:", err);
+      setBalance("0.00");
+    } finally {
+      setIsBalanceLoading(false);
     }
   }, [accountId, getBalance]);
 
@@ -268,6 +275,7 @@ export function WalletProvider({ children }: WalletProviderProps) {
     isConnected: !!accountId,
     isLoading,
     balance,
+    isBalanceLoading,
     connect,
     disconnect,
     getBalance,

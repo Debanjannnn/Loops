@@ -35,7 +35,7 @@ type PopupState = {
 }
 
 export function PaajiOnTop({ rows = 8, cols = 4 }: PaajiOnTopProps) {
-  const { selector, accountId, isConnected, getBalance } = useWallet()
+  const { selector, accountId, isConnected, getBalance, isBalanceLoading } = useWallet()
   const { getUserStats } = useContract()
   const [status, setStatus] = React.useState<GameStatus>("idle")
   const [currentRow, setCurrentRow] = React.useState(0)
@@ -357,9 +357,16 @@ export function PaajiOnTop({ rows = 8, cols = 4 }: PaajiOnTopProps) {
               </div>
             ) : (
               <div className="bg-green-600/20 border border-green-500/30 rounded-4xl p-3 text-center">
-                <p className="text-green-400 text-sm font-medium">
-                  💰 Balance: {walletBalance} NEAR
-                </p>
+                {isBalanceLoading ? (
+                  <div className="flex items-center justify-center space-x-2">
+                    <div className="w-3 h-3 border border-green-300 border-t-transparent rounded-full animate-spin"></div>
+                    <p className="text-green-400 text-sm font-medium">Loading balance...</p>
+                  </div>
+                ) : (
+                  <p className="text-green-400 text-sm font-medium">
+                    💰 Balance: {walletBalance} NEAR
+                  </p>
+                )}
                 <p className="text-green-300 text-xs">
                   Account: {accountId?.slice(0, 12)}...
                 </p>

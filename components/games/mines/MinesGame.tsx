@@ -33,7 +33,7 @@ interface MinesGameProps {
 }
 
 export default function MinesGame({ compact = false, onBack }: MinesGameProps) {
-  const { selector, accountId, isConnected, getBalance } = useWallet()
+  const { selector, accountId, isConnected, getBalance, isBalanceLoading } = useWallet()
   const { getUserStats } = useContract()
   const [betAmount, setBetAmount] = useState("0.10")
   const [mineCount, setMineCount] = useState("3")
@@ -394,9 +394,16 @@ export default function MinesGame({ compact = false, onBack }: MinesGameProps) {
               </div>
             ) : (
               <div className="bg-green-600/10 border border-green-500/20 rounded-4xl p-3 text-center">
-                <p className="text-green-400 text-sm font-medium">
-                  💰 Balance: {walletBalance} NEAR
-                </p>
+                {isBalanceLoading ? (
+                  <div className="flex items-center justify-center space-x-2">
+                    <div className="w-3 h-3 border border-green-300 border-t-transparent rounded-full animate-spin"></div>
+                    <p className="text-green-400 text-sm font-medium">Loading balance...</p>
+                  </div>
+                ) : (
+                  <p className="text-green-400 text-sm font-medium">
+                    💰 Balance: {walletBalance} NEAR
+                  </p>
+                )}
                 <p className="text-green-300 text-xs">
                   Account: {accountId?.slice(0, 12)}...
                 </p>

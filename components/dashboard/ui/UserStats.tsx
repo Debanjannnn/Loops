@@ -92,7 +92,7 @@ interface GameDistribution {
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8']
 
 export default function UserStats() {
-  const { selector, accountId, isConnected, getBalance, refreshBalance } = useWallet()
+  const { selector, accountId, isConnected, getBalance, refreshBalance, isBalanceLoading } = useWallet()
   const { getUserStats, withdraw: contractWithdraw } = useContract()
   console.log("accountId:", accountId)
   const [contractService, setContractService] = useState<ContractService | null>(null)
@@ -469,7 +469,14 @@ export default function UserStats() {
         <div className="flex items-center justify-between">
           <div>
             <p className="text-green-400 text-sm font-medium">💰 Wallet Connected</p>
-            <p className="text-green-300 text-xs">Balance: {walletBalance} NEAR</p>
+            {isBalanceLoading ? (
+              <div className="flex items-center space-x-1">
+                <div className="w-3 h-3 border border-green-300 border-t-transparent rounded-full animate-spin"></div>
+                <p className="text-green-300 text-xs">Loading balance...</p>
+              </div>
+            ) : (
+              <p className="text-green-300 text-xs">Balance: {walletBalance} NEAR</p>
+            )}
           </div>
           <div className="text-right">
             <p className="text-green-400 text-sm font-medium">Account</p>

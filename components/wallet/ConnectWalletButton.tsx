@@ -11,7 +11,7 @@ interface ConnectWalletButtonProps {
 }
 
 export default function ConnectWalletButton({ className }: ConnectWalletButtonProps) {
-  const { accountId, isConnected, isLoading, connect, disconnect, balance, refreshBalance } = useWallet()
+  const { accountId, isConnected, isLoading, connect, disconnect, balance, refreshBalance, isBalanceLoading } = useWallet()
   const [copied, setCopied] = useState(false)
   const [isRefreshing, setIsRefreshing] = useState(false)
 
@@ -58,10 +58,17 @@ export default function ConnectWalletButton({ className }: ConnectWalletButtonPr
         <div className="flex flex-col items-end">
           <div className="flex items-center space-x-2">
             <span className="text-white/70 text-sm">Balance:</span>
-            <span className="text-white font-medium">{balance} NEAR</span>
+            {isBalanceLoading ? (
+              <div className="flex items-center space-x-1">
+                <RefreshCw className="w-3 h-3 animate-spin text-white/70" />
+                <span className="text-white/70 text-sm">Loading...</span>
+              </div>
+            ) : (
+              <span className="text-white font-medium">{balance} NEAR</span>
+            )}
             <button
               onClick={handleRefreshBalance}
-              disabled={isRefreshing}
+              disabled={isRefreshing || isBalanceLoading}
               className="text-white/50 hover:text-white/70 transition-colors disabled:opacity-50"
               title="Refresh balance"
             >
