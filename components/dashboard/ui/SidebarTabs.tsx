@@ -19,6 +19,7 @@ import {
   UsersRound,
   BarChart3,
   Settings,
+  Trophy,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useUI } from "@/contexts/UIContext"
@@ -39,6 +40,7 @@ const primaryNav: NavItem[] = [
   { label: "Paaji On Top", href: "/paaji", icon: Rocket, key: "paaji" },
   { label: "Coinflip", href: "/coinflip", icon: Rocket, key: "coinflip" },
   { label: "Statistics", href: "/stats", icon: BarChart3, key: "stats" },
+  { label: "Leaderboard", href: "/leaderboard", icon: Trophy, key: "leaderboard" },
 ]
 
 const secondaryNav: NavItem[] = [

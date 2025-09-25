@@ -21,6 +21,7 @@ import UserStats from "@/components/dashboard/ui/UserStats"
 import NearkMarketWork from "@/components/dashboard/ui/nearkmarketwork"
 import { useRouter } from "next/navigation"
 import LoadingScreen from "@/components/ui/LoadingScreen"
+import Leaderboard from "@/components/dashboard/ui/Leaderboard"
 
 export default function DashboardPage() {
   const { selectedSection, setSelectedSection, mode } = useUI()
@@ -124,6 +125,10 @@ export default function DashboardPage() {
 
     if (selectedSection === "stats") {
       return <UserStats />
+    }
+
+    if (selectedSection === "leaderboard") {
+      return <Leaderboard />
     }
 
     if (selectedSection === "games") {
