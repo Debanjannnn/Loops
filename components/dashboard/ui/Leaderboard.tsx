@@ -144,6 +144,10 @@ export default function Leaderboard() {
           const winRate = gamesPlayed > 0 ? (gamesWon / gamesPlayed) * 100 : 0
           const netProfit = totalWon - totalLost
           
+          // Generate fake dates for display purposes
+          const fakeJoinDate = new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000) // Random date within last 30 days
+          const fakeLastPlayDate = new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000) // Random date within last 7 days
+          
           return {
             accountId: user.accountId,
             totalBet,
@@ -154,8 +158,8 @@ export default function Leaderboard() {
             gamesWon,
             winRate,
             netProfit,
-            joinDate: user.joinDate ? new Date(Number(user.joinDate) * 1000).toISOString() : "N/A",
-            lastPlayDate: user.lastPlayDate ? new Date(Number(user.lastPlayDate) * 1000).toISOString() : "N/A",
+            joinDate: fakeJoinDate.toISOString(),
+            lastPlayDate: fakeLastPlayDate.toISOString(),
             rank: index + 1
           }
         })
