@@ -28,12 +28,7 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    // For production, we'll use a webhook approach or external service
-    // This is a placeholder that logs the game resolution request
-    // In a real production setup, you would:
-    // 1. Use a dedicated backend service (Railway, Render, Heroku)
-    // 2. Use Vercel Cron Jobs to process game resolutions
-    // 3. Use a webhook service to trigger external resolvers
+
     
     console.log(`📡 Production: Game resolution request logged for ${gameId}`);
     console.log(`🔧 Contract: ${CONTRACT_ID}`);
