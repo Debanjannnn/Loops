@@ -24,12 +24,12 @@ class GameOutcomeService {
     try {
       console.log(`🚀 Resolving game: ${outcome.gameId} - ${outcome.didWin ? 'WIN' : 'LOSE'} at ${outcome.multiplier}x`);
       
-      // Check if we're in production (Vercel) or development
-      const isProduction = process.env.NODE_ENV === 'production' || 
-                          window.location.hostname.includes('vercel.app') ||
-                          window.location.hostname.includes('koondotfun.vercel.app');
-      
-      const apiEndpoint = isProduction ? '/api/resolve-game-production' : '/api/resolve-game';
+        // Check if we're in production (Vercel) or development
+        const isProduction = process.env.NODE_ENV === 'production' ||
+                            window.location.hostname.includes('vercel.app') ||
+                            window.location.hostname.includes('koondotfun.vercel.app');
+        
+        const apiEndpoint = isProduction ? '/api/resolve-game' : '/api/resolve-game';
       
       console.log(`🔧 Using ${isProduction ? 'production' : 'development'} resolver: ${apiEndpoint}`);
       
