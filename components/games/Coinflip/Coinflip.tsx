@@ -49,6 +49,7 @@ export function CoinFlip({ compact = false }: CoinFlipProps) {
   const [isFlipping, setIsFlipping] = React.useState(false)
   const [result, setResult] = React.useState<Side | null>(null)
   const [flipCount, setFlipCount] = React.useState(0)
+  const [hasStaked, setHasStaked] = React.useState(false) // Track if player has staked
 
   // Provably fair system
   const [gameSession, setGameSession] = React.useState<GameSession | null>(null)
@@ -112,26 +113,6 @@ export function CoinFlip({ compact = false }: CoinFlipProps) {
       return
     }
 
-    // Validate bet amount
-    const bet = Number.parseFloat(betAmount)
-    if (bet <= 0 || isNaN(bet)) {
-      return
-    }
-
-    // If game has ended, reset everything for a new game
-    if (gameEnded) {
-      setGameEnded(false)
-      setCurrentStreak(0)
-      setCanCashOut(false)
-      setTotalPayout(0)
-      setResult(null)
-      setStreakHistory([])
-
-      // Initialize new game session
-      const newSession = initializeGameSession(clientSeed)
-      setGameSession(newSession)
-    }
-
     // Set the selected side if provided
     if (side) {
       setSelectedSide(side)
@@ -166,6 +147,9 @@ export function CoinFlip({ compact = false }: CoinFlipProps) {
       // Update game session nonce
       setGameSession((prev) => (prev ? { ...prev, nonce: prev.nonce + 1 } : null))
 
+      // Get bet amount for calculations
+      const bet = Number.parseFloat(betAmount)
+
       // Update statistics
       setGameStats((prev) => updateGameStats(prev, flipResult, bet))
 
@@ -176,16 +160,15 @@ export function CoinFlip({ compact = false }: CoinFlipProps) {
         setCanCashOut(true)
         setTotalPayout(calculatePayout(bet, flipResult.multiplier))
 
-        if (newStreak >= gameSession.maxStreak) {
+        if (newStreak >= 5) { // Max streak is 5 (2.0X multiplier)
           // Auto cashout at max streak
           setStatus("won")
           setGameEnded(true)
-          // game win sound
+          setHasStaked(false) // Reset staking status
           CashoutSound()
           setPopup({ isOpen: true, type: "cashout" })
         } else {
           setStatus("streak-active")
-          // streak win sound
           paajiWinSound()
           // Reset selected side so user can choose again
           setSelectedSide(null)
@@ -197,33 +180,41 @@ export function CoinFlip({ compact = false }: CoinFlipProps) {
         setCanCashOut(false)
         setTotalPayout(0)
         setGameEnded(true)
+        setHasStaked(false) // Reset staking status
         BombSound()
         setPopup({ isOpen: true, type: "lose" })
       }
     }, 2000)
   }
 
-  // Stake first, then play
-  const stakeAndPlay = async () => {
-    if (!selectedSide) return
+  // Stake once at the beginning
+  const stakeOnce = async () => {
     const bet = Number.parseFloat(betAmount)
     if (bet <= 0 || isNaN(bet)) return
     if (!isConnected || !contractService) {
-      // If no wallet, just play locally as fallback
-      startGame()
+      // If no wallet, just set as staked and continue
+      setHasStaked(true)
+      setStatus("streak-active")
       return
     }
     try {
       setIsStaking(true)
       const gameId = `coinflip-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
       await contractService.startGame(gameId, betAmount, "coinflip")
-      // After staking successfully, start the flip
-      startGame()
+      // After staking successfully, set as staked
+      setHasStaked(true)
+      setStatus("streak-active")
     } catch (err) {
       console.error("Stake failed:", err)
     } finally {
       setIsStaking(false)
     }
+  }
+
+  // Play a round (after staking)
+  const playRound = () => {
+    if (!hasStaked) return
+    startGame()
   }
 
   const cashOut = () => {
@@ -247,6 +238,7 @@ export function CoinFlip({ compact = false }: CoinFlipProps) {
     setTotalPayout(0)
     setStreakHistory([])
     setGameEnded(false)
+    setHasStaked(false) // Reset staking status
     setPopup({ isOpen: false, type: null })
 
     // Initialize new game session
@@ -425,30 +417,42 @@ export function CoinFlip({ compact = false }: CoinFlipProps) {
 
             {/* Game Controls */}
             <div className="pt-1 space-y-2">
-              {status === "streak-active" && !gameEnded ? (
+              {!hasStaked ? (
+                // Initial stake button
+                <Button 
+                  className="w-full h-10 rounded-xl" 
+                  onClick={stakeOnce} 
+                  disabled={isStaking}
+                >
+                  {isStaking ? "Staking..." : "🎯 Stake & Start"}
+                </Button>
+              ) : status === "streak-active" && !gameEnded ? (
+                // After staking, show play/cashout options
                 <div className="grid grid-cols-2 gap-2">
                   <Button
                     className="h-10 rounded-xl"
-                    onClick={stakeAndPlay}
-                    disabled={!selectedSide || isStaking}
+                    onClick={playRound}
+                    disabled={!selectedSide}
                   >
-                    Stake
+                    Play Round
                   </Button>
                   <Button className="h-10 rounded-xl bg-green-600 hover:bg-green-700" onClick={cashOut}>
                     Cash Out
                   </Button>
                 </div>
               ) : gameEnded ? (
-                <Button className="w-full h-10 rounded-xl" onClick={stakeAndPlay} disabled={!selectedSide || isStaking}>
-                  🎯 Stake & Play
+                // Game ended, start new game
+                <Button className="w-full h-10 rounded-xl" onClick={stakeOnce} disabled={isStaking}>
+                  🎯 New Game
                 </Button>
               ) : status === "flipping" ? (
                 <Button variant="ghost" className="w-full h-10 rounded-xl" disabled>
                   Flipping...
                 </Button>
               ) : (
-                <Button className="w-full h-10 rounded-xl" onClick={stakeAndPlay} disabled={!selectedSide || isStaking}>
-                  {isStaking ? "Staking..." : "Stake"}
+                // Default state
+                <Button className="w-full h-10 rounded-xl" onClick={stakeOnce} disabled={isStaking}>
+                  {isStaking ? "Staking..." : "🎯 Stake & Start"}
                 </Button>
               )}
             </div>
@@ -465,14 +469,15 @@ export function CoinFlip({ compact = false }: CoinFlipProps) {
 
             {/* Game Status */}
             <div className="rounded-xl border border-border bg-background/40 px-3 py-2 text-xs text-foreground/80">
-              {status === "idle" && "Choose Heads or Tails to start the game!"}
+              {!hasStaked && "Stake once to start playing multiple rounds!"}
+              {hasStaked && status === "idle" && "Choose Heads or Tails to play your first round!"}
               {status === "flipping" && "The coin is flipping..."}
               {status === "streak-active" &&
                 !gameEnded &&
                 `Streak: ${currentStreak}! Choose your side to continue or cash out.`}
-              {status === "won" && `You cashed out at ${currentStreak} streak! Place a new bet to start again.`}
+              {status === "won" && `You cashed out at ${currentStreak} streak! Start a new game to play again.`}
               {status === "lost" &&
-                `Game over! The coin landed on ${result?.toUpperCase()}. Place a new bet to start again.`}
+                `Game over! The coin landed on ${result?.toUpperCase()}. Start a new game to play again.`}
             </div>
           </div>
         </div>
@@ -542,7 +547,7 @@ export function CoinFlip({ compact = false }: CoinFlipProps) {
             </div>
 
             {/* Side Selection Visual */}
-            {!isFlipping && !result && status !== "streak-active" && (
+            {!isFlipping && !result && hasStaked && status !== "streak-active" && (
               <div className="flex flex-col items-center gap-4">
                 <div className="flex gap-4">
                   {["heads", "tails"].map((side) => (
@@ -560,8 +565,8 @@ export function CoinFlip({ compact = false }: CoinFlipProps) {
                     </button>
                   ))}
                 </div>
-                <Button className="min-w-[160px]" onClick={stakeAndPlay} disabled={!selectedSide || isStaking}>
-                  {isStaking ? "Staking..." : "Stake"}
+                <Button className="min-w-[160px]" onClick={playRound} disabled={!selectedSide}>
+                  Play Round
                 </Button>
               </div>
             )}
@@ -586,8 +591,8 @@ export function CoinFlip({ compact = false }: CoinFlipProps) {
                   ))}
                 </div>
                 <div className="flex gap-3">
-                  <Button className="min-w-[140px]" onClick={stakeAndPlay} disabled={!selectedSide || isStaking}>
-                    {isStaking ? "Staking..." : "Stake"}
+                  <Button className="min-w-[140px]" onClick={playRound} disabled={!selectedSide}>
+                    Play Round
                   </Button>
                   <Button variant="secondary" className="min-w-[140px]" onClick={cashOut}>
                     Cash Out

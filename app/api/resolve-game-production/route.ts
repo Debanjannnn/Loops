@@ -1,42 +1,38 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { exec } from 'child_process';
-import { promisify } from 'util';
-
-const execAsync = promisify(exec);
+import { Near, Account, KeyPair, keyStores, utils } from 'near-api-js';
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const { gameId, didWin, multiplier, gameType, player } = body;
-    
+
     if (!gameId || didWin === undefined || !multiplier) {
       return NextResponse.json(
         { success: false, message: 'Missing required fields: gameId, didWin, multiplier' },
         { status: 400 }
       );
     }
-    
+
     console.log(`🚀 Production Resolver: Resolving game ${gameId}`);
     console.log(`📋 Outcome: ${didWin ? 'WIN' : 'LOSE'} with ${multiplier}x multiplier`);
     console.log(`📋 Game type: ${gameType}, Player: ${player}`);
-    
+
     // Get environment variables
     const CONTRACT_ID = process.env.CONTRACT_ID || 'game-v0.testnet';
     const RESOLVER_ACCOUNT_ID = process.env.RESOLVER_ACCOUNT_ID || 'resolver-v0.testnet';
     const RESOLVER_PRIVATE_KEY = process.env.RESOLVER_PRIVATE_KEY;
-    
+
     if (!RESOLVER_PRIVATE_KEY) {
       return NextResponse.json(
         { success: false, message: 'Resolver private key not configured in environment variables' },
         { status: 500 }
       );
     }
-    
+
     console.log(`🔧 Contract: ${CONTRACT_ID}`);
     console.log(`🔑 Resolver: ${RESOLVER_ACCOUNT_ID}`);
-    
-    // For production, we'll use a direct HTTP call to the NEAR RPC
-    // This avoids the need for NEAR CLI or complex near-api-js setup
+
+    // Try multiple RPC endpoints for reliability
     const rpcEndpoints = [
       'https://near-testnet.api.pagoda.co/rpc/v1', // Pagoda - usually more reliable
       'https://testnet-rpc.near.org', // Official backup
@@ -44,151 +40,81 @@ export async function POST(request: NextRequest) {
       'https://near-testnet.lava.build', // Lava RPC
       'https://testnet.nearapi.org' // Alternative provider
     ];
-    
+
     let result;
     let lastError;
-    
+
     for (const nodeUrl of rpcEndpoints) {
       try {
-        console.log(`🔗 Attempting to resolve game via ${nodeUrl}`);
+        console.log(`🔗 Trying RPC endpoint: ${nodeUrl}`);
         
-        // Create the transaction payload
-        const transactionPayload = {
-          signer_id: RESOLVER_ACCOUNT_ID,
-          receiver_id: CONTRACT_ID,
-          actions: [
-            {
-              FunctionCall: {
-                method_name: 'resolve_game',
-                args: Buffer.from(JSON.stringify({
-                  gameId: gameId,
-                  didWin: didWin,
-                  multiplier: multiplier
-                })).toString('base64'),
-                gas: '300000000000000', // 300 TGas
-                deposit: '0'
-              }
-            }
-          ]
-        };
-        
-        // For production, we'll use a direct HTTP call to the NEAR RPC
-        // This avoids the need for NEAR CLI or complex near-api-js setup
-        
-        // REAL BLOCKCHAIN TRANSACTION - Using working script approach
+        // REAL BLOCKCHAIN TRANSACTION - Using proper near-api-js (HIGH LEVEL)
         console.log(`🔗 Making REAL blockchain transaction for ${gameId}`);
         
-        // Use the working script approach that we know works
-        const scriptContent = `#!/bin/bash
-export CONTRACT_ID="${CONTRACT_ID}"
-export RESOLVER_ACCOUNT_ID="${RESOLVER_ACCOUNT_ID}"
-export RESOLVER_PRIVATE_KEY="${RESOLVER_PRIVATE_KEY}"
-
-# Call the contract directly using near CLI
-near call ${CONTRACT_ID} resolve_game "{\\"gameId\\": \\"${gameId}\\", \\"didWin\\": ${didWin}, \\"multiplier\\": ${multiplier}}" --accountId ${RESOLVER_ACCOUNT_ID} --networkId testnet --private-key ${RESOLVER_PRIVATE_KEY}
-`;
+        // Set up key store with private key (following official docs)
+        const keyStore = new keyStores.InMemoryKeyStore();
+        const keyPair = KeyPair.fromString(RESOLVER_PRIVATE_KEY);
         
-        // Write script to temporary file
-        const fs = require('fs');
-        const path = require('path');
-        const tempScriptPath = path.join('/tmp', `resolve-${Date.now()}.sh`);
+        // Add the key to keyStore (must be inside async function)
+        await keyStore.setKey("testnet", RESOLVER_ACCOUNT_ID, keyPair);
         
-        fs.writeFileSync(tempScriptPath, scriptContent);
-        fs.chmodSync(tempScriptPath, '755');
+        // Configuration used to connect to NEAR (following official docs)
+        const config = {
+          networkId: "testnet",
+          keyStore,
+          nodeUrl: nodeUrl,
+          walletUrl: "https://wallet.testnet.near.org",
+          helperUrl: "https://helper.testnet.near.org",
+          explorerUrl: "https://testnet.nearblocks.io",
+        };
         
-        try {
-          console.log(`🔧 Executing REAL NEAR CLI command for game ${gameId}`);
-          
-          const { stdout, stderr } = await execAsync(`bash ${tempScriptPath}`, { 
-            timeout: 60000, // 60 second timeout
-            cwd: process.cwd()
-          });
-          
-          // Clean up temp file
-          fs.unlinkSync(tempScriptPath);
-          
-          if (stderr) {
-            console.warn('⚠️ Script stderr:', stderr);
-          }
-          
-          console.log('✅ Script output:', stdout);
-          
-          // Parse the output to check if it was successful
-          if (stdout.includes('Transaction sent') || stdout.includes('signed successfully') || stdout.includes('Transaction ID:') || stdout.includes('Your transaction was signed successfully')) {
-            // Extract transaction hash from output
-            const transactionMatch = stdout.match(/Transaction ID: ([a-zA-Z0-9]+)/);
-            const transactionHash = transactionMatch ? transactionMatch[1] : `real_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-            
-            result = {
-              transaction: {
-                hash: transactionHash
-              }
-            };
-            
-            console.log(`✅ REAL blockchain transaction successful for ${gameId}`);
-            break; // Success, exit the loop
-          } else if (stdout.includes('Game not found') || stdout.includes('Game already resolved')) {
-            // This is actually a success - the contract processed the call
-            const transactionMatch = stdout.match(/Transaction ID: ([a-zA-Z0-9]+)/);
-            const transactionHash = transactionMatch ? transactionMatch[1] : `real_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-            
-            result = {
-              transaction: {
-                hash: transactionHash
-              }
-            };
-            
-            console.log(`✅ REAL blockchain transaction processed for ${gameId}`);
-            break; // Success, exit the loop
-          } else {
-            throw new Error(`Game resolution failed. Output: ${stdout.trim()}`);
-          }
-          
-        } catch (execError: any) {
-          // Clean up temp file
-          try {
-            fs.unlinkSync(tempScriptPath);
-          } catch (cleanupError) {
-            console.warn('Failed to cleanup temp file:', cleanupError);
-          }
-          
-          console.error('❌ Script execution failed:', execError);
-          
-          // Check if the transaction was actually processed despite the error
-          const errorOutput = execError.message || '';
-          if (errorOutput.includes('Your transaction was signed successfully') && 
-              (errorOutput.includes('Game not found') || errorOutput.includes('Game already resolved'))) {
-            const transactionMatch = errorOutput.match(/Transaction ID: ([a-zA-Z0-9]+)/);
-            const transactionHash = transactionMatch ? transactionMatch[1] : `real_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-            
-            result = {
-              transaction: {
-                hash: transactionHash
-              }
-            };
-            
-            console.log(`✅ REAL blockchain transaction processed for ${gameId}`);
-            break; // Success, exit the loop
-          }
-          
-          throw execError;
-        }
+        // Connect to NEAR! :)
+        const near = new Near(config);
         
+        // Create a NEAR account object
+        const senderAccount = new Account(near.connection, RESOLVER_ACCOUNT_ID);
+        
+        // Check account balance first
+        const balance = await senderAccount.getAccountBalance();
+        console.log(`💰 Resolver account balance: ${balance.available} yoctoNEAR`);
+        
+        // Call the contract to resolve the game - REAL BLOCKCHAIN TRANSACTION
+        // Using functionCall method (similar to sendMoney but for contract calls)
+        result = await senderAccount.functionCall({
+          contractId: CONTRACT_ID,
+          methodName: "resolve_game",
+          args: {
+            gameId: gameId,
+            didWin: didWin,
+            multiplier: multiplier
+          },
+          gas: "300000000000000",  // 300 TGas
+          attachedDeposit: "0",    // in yoctoNEAR
+        });
+        
+        console.log(`✅ REAL blockchain transaction successful for ${gameId}`);
+        console.log(`📝 Transaction hash: ${result.transaction.hash}`);
         break; // Success, exit the loop
         
       } catch (error: any) {
         console.warn(`❌ Failed to resolve via ${nodeUrl}:`, error.message);
         lastError = error;
-        continue; // Try next endpoint
+        
+        // If it's a rate limit error, wait before trying next endpoint
+        if (error.message?.includes('429') || error.message?.includes('Too Many Requests')) {
+          console.log("⏳ Rate limited, waiting 3 seconds...");
+          await new Promise(resolve => setTimeout(resolve, 3000));
+        }
+        continue;
       }
     }
-    
+
     if (!result) {
-      throw lastError || new Error('Failed to resolve game on all RPC endpoints');
+      throw lastError || new Error('Failed to resolve game after trying all endpoints');
     }
-    
+
     console.log('✅ Game resolved successfully:', result);
-    
+
     return NextResponse.json({
       success: true,
       message: `Game ${gameId} resolved successfully on blockchain`,
@@ -203,7 +129,7 @@ near call ${CONTRACT_ID} resolve_game "{\\"gameId\\": \\"${gameId}\\", \\"didWin
       timestamp: new Date().toISOString(),
       note: "Game was successfully resolved on the NEAR blockchain in real-time using near-api-js"
     });
-    
+
   } catch (error: any) {
     console.error('❌ Production Resolver: Error resolving game:', error);
     return NextResponse.json(

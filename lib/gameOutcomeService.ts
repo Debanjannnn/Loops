@@ -24,23 +24,10 @@ class GameOutcomeService {
     try {
       console.log(`🚀 Resolving game: ${outcome.gameId} - ${outcome.didWin ? 'WIN' : 'LOSE'} at ${outcome.multiplier}x`);
       
-        // Check if we're in production (Vercel) or development
-        const hostname = window.location.hostname;
-        const isProduction = hostname.includes('vercel.app') ||
-                            hostname.includes('koondotfun.vercel.app') ||
-                            (hostname !== 'localhost' && hostname !== '127.0.0.1');
-        
-        // Always use production resolver for now to avoid script issues
-        const apiEndpoint = '/api/resolve-game-production';
+        // Both development and production now use the same near-api-js approach
+        const apiEndpoint = '/api/resolve-game';
       
-      console.log(`🔧 Environment detection:`, {
-        hostname,
-        isProduction,
-        apiEndpoint,
-        nodeEnv: process.env.NODE_ENV,
-        userAgent: navigator.userAgent
-      });
-      console.log(`🔧 Using production resolver: ${apiEndpoint}`);
+      console.log(`🔧 Using unified near-api-js resolver: ${apiEndpoint}`);
       
       // Use the appropriate API route
       const response = await fetch(apiEndpoint, {
@@ -57,18 +44,15 @@ class GameOutcomeService {
         })
       });
       
-      if (response.ok) {
-        const result = await response.json();
-        console.log('✅ Game resolved successfully:', result);
-        
-        if (isProduction && result.note) {
-          console.log('ℹ️ Production note:', result.note);
-        }
-      } else {
-        const errorData = await response.json();
-        console.error('❌ Failed to resolve game:', errorData.message);
-        throw new Error(errorData.message);
-      }
+          if (response.ok) {
+            const result = await response.json();
+            console.log('✅ Game resolved successfully:', result);
+            console.log('ℹ️ Transaction hash:', result.transactionHash);
+          } else {
+            const errorData = await response.json();
+            console.error('❌ Failed to resolve game:', errorData.message);
+            throw new Error(errorData.message);
+          }
     } catch (error) {
       console.error('❌ Error resolving game:', error);
       throw error;

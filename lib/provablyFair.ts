@@ -70,7 +70,17 @@ function generateRandomString(length: number): string {
  */
 export function calculateMultiplier(streak: number): number {
   if (streak <= 0) return 0;
-  return 1.96 * Math.pow(2, streak - 1);
+  
+  // Progressive multiplier system for coin flip:
+  // 1st win: 1.2X, 2nd win: 1.3X, 3rd win: 1.4X, 4th win: 1.5X, 5th win: 2.0X (max)
+  const multipliers = [1.2, 1.3, 1.4, 1.5, 2.0];
+  
+  // Return the multiplier for the current streak (streak is 1-indexed)
+  if (streak > multipliers.length) {
+    return multipliers[multipliers.length - 1]; // Max multiplier (2.0X)
+  }
+  
+  return multipliers[streak - 1];
 }
 
 /**
