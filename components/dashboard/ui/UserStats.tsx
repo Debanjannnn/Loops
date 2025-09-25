@@ -431,7 +431,7 @@ export default function UserStats() {
 
   if (!isConnected) {
     return (
-      <div className="flex flex-col items-center justify-center h-full text-center p-8">
+      <div className="flex flex-col items-center justify-center h-screen text-center p-8">
         <div className="text-8xl mb-6">📊</div>
         <h2 className="text-white text-4xl font-bold mb-4">User Statistics</h2>
         <p className="text-white/70 text-xl mb-8 max-w-2xl">
@@ -447,7 +447,7 @@ export default function UserStats() {
   }
 
   return (
-    <div className="mx-auto max-w-7xl w-full pt-4 space-y-6">
+    <div className="mx-auto max-w-7xl w-full h-screen pt-4 space-y-6 overflow-y-auto overflow-x-hidden no-scrollbar">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -718,7 +718,7 @@ export default function UserStats() {
       <Card className="bg-background/60 border-border p-6">
         <h3 className="text-lg font-semibold text-white mb-4">Game Performance</h3>
         {gameStats.length > 0 ? (
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto no-scrollbar">
             <table className="w-full">
               <thead>
                 <tr className="border-b border-border">
@@ -736,11 +736,11 @@ export default function UserStats() {
                     <td className="py-3 px-4 text-white font-medium">{game.gameType}</td>
                     <td className="py-3 px-4 text-white">{game.totalGames}</td>
                     <td className="py-3 px-4">
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                      <span className={`${
                         game.winRate >= 60 ? 'bg-green-500/20 text-green-400' : 
                         game.winRate >= 40 ? 'bg-yellow-500/20 text-yellow-400' : 
                         'bg-red-500/20 text-red-400'
-                      }`}>
+                      } px-2 py-1 rounded-full text-xs font-medium`}>
                         {game.winRate}%
                       </span>
                     </td>
@@ -769,7 +769,7 @@ export default function UserStats() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-muted-foreground">Withdrawable Balance</p>
-              <p className={`text-2xl font-bold ${userStats && parseFloat(userStats.withdrawableBalance) > 0 ? 'text-yellow-400' : 'text-white'}`} title={withdrawableConversion.conversionText}>
+              <p className={`${userStats && parseFloat(userStats.withdrawableBalance) > 0 ? 'text-yellow-400' : 'text-white'} text-2xl font-bold`} title={withdrawableConversion.conversionText}>
                 {formatCurrency(userStats?.withdrawableBalance || "0")}
               </p>
               <p className="text-xs text-muted-foreground mt-1">

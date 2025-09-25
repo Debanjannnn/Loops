@@ -20,7 +20,40 @@ export async function POST(request: NextRequest) {
     console.log(`📋 Outcome: ${didWin ? 'WIN' : 'LOSE'} with ${multiplier}x multiplier`);
     console.log(`📋 Game type: ${gameType}, Player: ${player}`);
     
-    // Call the resolve script directly
+    // Check if we're in production (Vercel) - if so, redirect to production resolver
+    const isProduction = process.env.NODE_ENV === 'production' || 
+                        process.env.VERCEL === '1' ||
+                        !process.env.NODE_ENV;
+    
+    if (isProduction) {
+      console.log(`🔄 Production detected, redirecting to production resolver`);
+      // Forward to production resolver
+      const productionResponse = await fetch(`${request.nextUrl.origin}/api/resolve-game-production`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          gameId,
+          didWin,
+          multiplier,
+          gameType,
+          player
+        })
+      });
+      
+      if (productionResponse.ok) {
+        const result = await productionResponse.json();
+        return NextResponse.json(result);
+      } else {
+        return NextResponse.json(
+          { success: false, message: 'Production resolver failed' },
+          { status: 500 }
+        );
+      }
+    }
+    
+    // Call the resolve script directly (development only)
     const scriptPath = './scripts/resolve-single-game.sh';
     const command = `${scriptPath} "${gameId}" ${didWin} ${multiplier}`;
     

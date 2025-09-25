@@ -25,12 +25,19 @@ class GameOutcomeService {
       console.log(`🚀 Resolving game: ${outcome.gameId} - ${outcome.didWin ? 'WIN' : 'LOSE'} at ${outcome.multiplier}x`);
       
         // Check if we're in production (Vercel) or development
-        const isProduction = process.env.NODE_ENV === 'production' ||
-                            window.location.hostname.includes('vercel.app') ||
-                            window.location.hostname.includes('koondotfun.vercel.app');
+        const hostname = window.location.hostname;
+        const isProduction = hostname.includes('vercel.app') ||
+                            hostname.includes('koondotfun.vercel.app') ||
+                            hostname !== 'localhost';
         
         const apiEndpoint = isProduction ? '/api/resolve-game-production' : '/api/resolve-game';
       
+      console.log(`🔧 Environment detection:`, {
+        hostname,
+        isProduction,
+        apiEndpoint,
+        nodeEnv: process.env.NODE_ENV
+      });
       console.log(`🔧 Using ${isProduction ? 'production' : 'development'} resolver: ${apiEndpoint}`);
       
       // Use the appropriate API route
