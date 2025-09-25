@@ -22,11 +22,19 @@ class GameOutcomeService {
    */
   async resolveGame(outcome: GameOutcome): Promise<void> {
     try {
-      const triggerServerUrl = process.env.NEXT_PUBLIC_TRIGGER_SERVER_URL || 'http://localhost:3001';
-      
       console.log(`🚀 Resolving game: ${outcome.gameId} - ${outcome.didWin ? 'WIN' : 'LOSE'} at ${outcome.multiplier}x`);
       
-      const response = await fetch(`${triggerServerUrl}/resolve-game`, {
+      // Check if we're in production (Vercel) or development
+      const isProduction = process.env.NODE_ENV === 'production' || 
+                          window.location.hostname.includes('vercel.app') ||
+                          window.location.hostname.includes('koondotfun.vercel.app');
+      
+      const apiEndpoint = isProduction ? '/api/resolve-game-production' : '/api/resolve-game';
+      
+      console.log(`🔧 Using ${isProduction ? 'production' : 'development'} resolver: ${apiEndpoint}`);
+      
+      // Use the appropriate API route
+      const response = await fetch(apiEndpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -43,6 +51,10 @@ class GameOutcomeService {
       if (response.ok) {
         const result = await response.json();
         console.log('✅ Game resolved successfully:', result);
+        
+        if (isProduction && result.note) {
+          console.log('ℹ️ Production note:', result.note);
+        }
       } else {
         const errorData = await response.json();
         console.error('❌ Failed to resolve game:', errorData.message);

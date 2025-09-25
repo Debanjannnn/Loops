@@ -13,7 +13,7 @@ interface GameSlotCardProps {
 export default function GameSlotCard({ title, provider, imageSrc, highlighted = false, onClick }: GameSlotCardProps) {
   return (
     <div onClick={onClick} className="group relative h-64 w-56 shrink-0 sm:h-72 sm:w-72 rounded-3xl overflow-hidden cursor-pointer select-none">
-      <Image src={imageSrc} alt={title} fill className="object-cover" priority={false} />
+        <Image src={imageSrc} alt={title} fill className="object-cover" priority={false} />
 
       {/* gradient overlay */}
       <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-black/10 to-black/80" />

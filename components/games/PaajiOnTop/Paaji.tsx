@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import confetti from "canvas-confetti"
 import { X } from "lucide-react"
-import useSound from "use-sound"
+import { useSound } from "@/lib/useSound"
 import { ContractService } from "@/lib/contractService"
 import { useWallet } from "@/contexts/WalletContext"
 import { useContract } from "@/contexts/ContractProvider"
@@ -55,8 +55,8 @@ export function PaajiOnTop({ rows = 8, cols = 4 }: PaajiOnTopProps) {
 
   const [PaajiWinSound] = useSound("/sounds/PaajiWin.mp3");
   const [BetSound] = useSound("/sounds/Bet.mp3");
-  const[PaajiLoseSound] = useSound("/sounds/PaajiLose.mp3");
-  const[PaajiCashoutSound] = useSound("/sounds/PaajiCashOut.mp3");
+  const [PaajiLoseSound] = useSound("/sounds/PaajiLose.mp3");
+  const [PaajiCashoutSound] = useSound("/sounds/PaajiCashOut.mp3");
 
   // Resolve game directly
   const resolveGame = async (didWin: boolean, finalMultiplier: number) => {
@@ -89,9 +89,22 @@ export function PaajiOnTop({ rows = 8, cols = 4 }: PaajiOnTopProps) {
   };
 
   const multiplier = React.useMemo(() => {
-    const base = 1
-    return (base * Math.pow(1.25, steps)).toFixed(2)
-  }, [steps])
+    // Paaji On Top Multiplier Algorithm
+    // Easy Mode: 1.12X → 1.36X → 1.65X → 1.95X → 2.0X → 2.4X → 2.6X → 3.0X (max)
+    // Hard Mode: 1.25X → 1.56X → 1.95X → 2.2X → 2.8X → 3.5X → 4.3X → 5.0X (max)
+    const easyMultipliers = [1.12, 1.36, 1.65, 1.95, 2.0, 2.4, 2.6, 3.0];
+    const hardMultipliers = [1.25, 1.56, 1.95, 2.2, 2.8, 3.5, 4.3, 5.0];
+    
+    // Select the appropriate multiplier array based on difficulty
+    const multipliers = difficulty === "Easy" ? easyMultipliers : hardMultipliers;
+    
+    // Return the multiplier for the current step (steps is 0-indexed)
+    if (steps >= multipliers.length) {
+      return multipliers[multipliers.length - 1].toFixed(2); // Max multiplier
+    }
+    
+    return multipliers[steps].toFixed(2);
+  }, [steps, difficulty])
 
   const canPlay = status === "in-progress"
 
@@ -495,6 +508,36 @@ export function PaajiOnTop({ rows = 8, cols = 4 }: PaajiOnTopProps) {
                 </span>
               </div>
             </div>
+
+            {/* Multiplier Progression Display */}
+            {status === "in-progress" && (
+              <div>
+                <div className="mb-1 text-[11px] uppercase tracking-wide text-muted-foreground">Multiplier Progression ({difficulty})</div>
+                <div className="flex flex-wrap gap-1 rounded-xl border border-border bg-background/40 p-2">
+                  {(() => {
+                    const easyMultipliers = [1.12, 1.36, 1.65, 1.95, 2.0, 2.4, 2.6, 3.0];
+                    const hardMultipliers = [1.25, 1.56, 1.95, 2.2, 2.8, 3.5, 4.3, 5.0];
+                    const multipliers = difficulty === "Easy" ? easyMultipliers : hardMultipliers;
+                    
+                    return multipliers.map((mult, index) => (
+                      <div
+                        key={index}
+                        className={cn(
+                          "px-2 py-1 rounded text-xs font-medium transition-colors",
+                          index === steps 
+                            ? "bg-primary text-primary-foreground" 
+                            : index < steps 
+                              ? "bg-green-500/20 text-green-600" 
+                              : "bg-muted text-muted-foreground"
+                        )}
+                      >
+                        {mult.toFixed(2)}×
+                      </div>
+                    ));
+                  })()}
+                </div>
+              </div>
+            )}
 
             <div className="rounded-xl border border-border bg-background/40 px-3 py-2 text-xs text-foreground/80">
               {status === "idle" && "Press Bet to begin. Pick one tile per row from bottom to top."}

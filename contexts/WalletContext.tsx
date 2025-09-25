@@ -20,6 +20,7 @@ import { setupNightly } from "@near-wallet-selector/nightly";
 import { setupLedger } from "@near-wallet-selector/ledger";
 import { CONTRACT_ID } from "@/near.config";
 import { providers, utils } from "near-api-js";
+import { balanceCache } from "@/lib/balanceCache";
 
 interface WalletContextType {
   selector: WalletSelector | null;
@@ -32,6 +33,7 @@ interface WalletContextType {
   disconnect: () => Promise<void>;
   getBalance: () => Promise<string>;
   refreshBalance: () => Promise<void>;
+  invalidateBalanceCache: () => void;
 }
 
 const WalletContext = createContext<WalletContextType | undefined>(undefined);
@@ -54,33 +56,94 @@ export function WalletProvider({ children }: WalletProviderProps) {
     }
 
     try {
-      console.log("🔍 Fetching balance for account:", accountId);
-      const { network } = selector.options;
+      // Check cache first
+      const cachedBalance = balanceCache.getCachedBalance(accountId);
+      if (cachedBalance) {
+        return cachedBalance;
+      }
+
+      console.log("🔍 Fetching fresh balance for account:", accountId);
       
-      // Try multiple RPC endpoints for reliability
+      // Use the wallet's built-in balance fetching method first
+      try {
+        const wallet = await selector.wallet();
+        if (wallet && typeof wallet.getAccounts === 'function') {
+          const accounts = await wallet.getAccounts();
+          const currentAccount = accounts.find(acc => acc.accountId === accountId);
+          if (currentAccount && currentAccount.balance) {
+            const formattedBalance = utils.format.formatNearAmount(currentAccount.balance, 2);
+            console.log("🔍 Balance from wallet:", formattedBalance);
+            balanceCache.setCachedBalance(accountId, formattedBalance);
+            return formattedBalance;
+          }
+        }
+      } catch (walletError) {
+        console.warn("⚠️ Wallet balance fetch failed, trying API:", walletError);
+      }
+      
+      // Use our API route for production (handles CORS)
+      try {
+        console.log("🔍 Trying API route for balance...");
+        const response = await fetch('/api/balance', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ accountId })
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          console.log("🔍 Balance from API:", data.balance);
+          balanceCache.setCachedBalance(accountId, data.balance);
+          return data.balance;
+        } else {
+          console.warn("⚠️ API balance fetch failed, trying direct RPC");
+        }
+      } catch (apiError) {
+        console.warn("⚠️ API balance fetch failed, trying direct RPC:", apiError);
+      }
+      
+      // Fallback to direct RPC with better error handling
       const rpcEndpoints = [
-        'https://rpc.testnet.near.org',
-        'https://testnet-rpc.near.org',
-        'https://near-testnet.api.pagoda.co/rpc/v1'
+        'https://near-testnet.api.pagoda.co/rpc/v1', // Pagoda - usually more reliable
+        'https://testnet-rpc.near.org', // Official backup
+        'https://rpc.testnet.near.org', // Official (deprecated but still works sometimes)
+        'https://near-testnet.lava.build', // Lava RPC
+        'https://testnet.nearapi.org' // Alternative provider
       ];
       
       let lastError;
       for (const endpoint of rpcEndpoints) {
         try {
           console.log("🔍 Trying RPC endpoint:", endpoint);
-          const provider = new providers.JsonRpcProvider({ url: endpoint });
+          const provider = new providers.JsonRpcProvider({ 
+            url: endpoint,
+            headers: {
+              'Content-Type': 'application/json',
+            }
+          });
+          
           const res: any = await provider.query({
             request_type: "view_account",
             account_id: accountId,
             finality: "final",
           });
+          
           console.log("🔍 Raw balance response:", res);
           const formattedBalance = utils.format.formatNearAmount(res.amount, 2);
           console.log("🔍 Formatted balance:", formattedBalance);
+          balanceCache.setCachedBalance(accountId, formattedBalance);
           return formattedBalance;
-        } catch (error) {
-          console.warn(`⚠️ RPC endpoint ${endpoint} failed:`, error);
+        } catch (error: any) {
+          console.warn(`⚠️ RPC endpoint ${endpoint} failed:`, error.message);
           lastError = error;
+          
+          // If it's a rate limit error, wait before trying next endpoint
+          if (error.message?.includes('429') || error.message?.includes('Too Many Requests')) {
+            console.log("⏳ Rate limited, waiting 3 seconds...");
+            await new Promise(resolve => setTimeout(resolve, 3000));
+          }
           continue;
         }
       }
@@ -109,6 +172,14 @@ export function WalletProvider({ children }: WalletProviderProps) {
       console.error("❌ Failed to refresh balance:", err);
     }
   }, [accountId, getBalance]);
+
+  // Function to invalidate balance cache (useful after transactions)
+  const invalidateBalanceCache = useCallback(() => {
+    if (accountId) {
+      balanceCache.invalidateAccount(accountId);
+      console.log("🗑️ Balance cache invalidated for account:", accountId);
+    }
+  }, [accountId]);
 
   useEffect(() => {
     const init = async () => {
@@ -160,11 +231,11 @@ export function WalletProvider({ children }: WalletProviderProps) {
     if (accountId) {
       console.log("🔍 Account connected, refreshing balance...");
       refreshBalance();
-      // Set up periodic balance refresh every 10 seconds
+      // Set up periodic balance refresh every 5 minutes to avoid rate limiting
       const interval = setInterval(() => {
         console.log("🔍 Periodic balance refresh...");
         refreshBalance();
-      }, 10000);
+      }, 300000); // 5 minutes
       return () => {
         console.log("🔍 Clearing balance refresh interval");
         clearInterval(interval);
@@ -201,6 +272,7 @@ export function WalletProvider({ children }: WalletProviderProps) {
     disconnect,
     getBalance,
     refreshBalance,
+    invalidateBalanceCache,
   };
 
   return <WalletContext.Provider value={value}>{children}</WalletContext.Provider>;

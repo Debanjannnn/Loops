@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import confetti from "canvas-confetti"
 import { X, Copy, Eye, EyeOff } from "lucide-react"
-import useSound from "use-sound"
+import { useSound } from "@/lib/useSound"
 import {
   type GameSession,
   type GameStats,
@@ -83,10 +83,10 @@ export function CoinFlip({ compact = false }: CoinFlipProps) {
   })
 
   // Sound effects
-  const [BetSound] = useSound("/sounds/Bet.mp3")
-  const [paajiWinSound] = useSound("/sounds/Gems.mp3")
-  const [CashoutSound] = useSound("/sounds/Cashout.mp3")
-  const [BombSound] = useSound("/sounds/Bomb.mp3")
+  const [BetSound] = useSound("/sounds/Bet.mp3");
+  const [paajiWinSound] = useSound("/sounds/Gems.mp3");
+  const [CashoutSound] = useSound("/sounds/Cashout.mp3");
+  const [BombSound] = useSound("/sounds/Bomb.mp3");
 
   // Initialize game session when component mounts
   React.useEffect(() => {
