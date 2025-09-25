@@ -15,7 +15,7 @@ export default function GameContainer({ children, scrollable = true }: GameConta
       <Card
         className={cn(
           "w-full h-full bg-transparent rounded-none shadow-none p-0 gap-0 border-0",
-          scrollable ? "overflow-y-auto" : "overflow-y-hidden",
+          scrollable ? "overflow-y-auto no-scrollbar" : "overflow-y-hidden",
           "overflow-x-auto",
         )}
       >
