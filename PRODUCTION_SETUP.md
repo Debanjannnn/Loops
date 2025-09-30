@@ -21,7 +21,7 @@ RESOLVER_PRIVATE_KEY=ed25519:4EfkzL95mEn3Jqy7hmR4Q6kxCXnLeDzwvYWm5PJjVoHDX2jAEu1
 ### 2. How to Set Environment Variables in Vercel
 
 1. Go to [Vercel Dashboard](https://vercel.com/dashboard)
-2. Select your project: `koondotfun`
+2. Select your project: `Grassdotfun`
 3. Go to **Settings** → **Environment Variables**
 4. Add each variable:
    - **Name**: `CONTRACT_ID`

@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Koon.fun",
+  title: "Grass.fun",
   description: "CONNECT. WIN. REPEAT.",
 };
 

@@ -12,7 +12,7 @@ interface DashboardHeaderProps {
   balanceInNEAR: number
 }
 
-export default function DashboardHeader({ title = "Koon", balanceInNEAR }: DashboardHeaderProps) {
+export default function DashboardHeader({ title = "Grass", balanceInNEAR }: DashboardHeaderProps) {
   const { isConnected, balance } = useWallet()
   const [chain, setChain] = useState<string>("near")
   const chains = [

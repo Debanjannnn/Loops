@@ -19,7 +19,7 @@ To make the production game resolver work, you need to set up these environment 
 ## How to Set Environment Variables in Vercel
 
 1. Go to your Vercel dashboard: https://vercel.com/dashboard
-2. Select your project: `koondotfun`
+2. Select your project: `Grassdotfun`
 3. Go to **Settings** → **Environment Variables**
 4. Add each variable:
    - **Name**: `CONTRACT_ID`
